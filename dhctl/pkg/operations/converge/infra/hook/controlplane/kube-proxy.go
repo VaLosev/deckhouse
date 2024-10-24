@@ -86,6 +86,7 @@ func (c *KubeProxyChecker) IsReady(nodeName string) (bool, error) {
 
 	if c.input != nil {
 		sshClient = ssh.NewClient(session.NewSession(*c.input), c.privateKeys)
+		sshClient.InitializeNewAgent = false
 	} else {
 		sshClient = ssh.NewClientFromFlags()
 	}
