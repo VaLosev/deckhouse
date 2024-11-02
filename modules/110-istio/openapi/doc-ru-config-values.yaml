@@ -131,7 +131,10 @@ properties:
           type: string
           pattern: '^[0-9]{1,5}$'
       livenessProbeEnabled:
-        description: Включение livenessProbe для sidecar контейнеров.
+        description: |
+          Включение livenessProbe для sidecar-контейнеров.
+          
+          **Внимание!** Включение данной опции может привести к лавинному эффекту. Рестарт контейнера istio-proxy приводит к дорогостоящей операции обмена метаданными с istiod.
       resourcesManagement:
         description: |
           Управляет ресурсами sidecar-контейнера Istio.
