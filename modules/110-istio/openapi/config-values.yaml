@@ -270,7 +270,7 @@ properties:
         description: |
           Turn on or off livenessProbe for sidecar container.
           
-          **Caution!** The sidecar liveness probes can start the avalanche effect. Sidecar restarting lead to expensive metadata exchange with istiod.
+          **Caution.** The sidecar liveness probes can start the avalanche effect. Sidecar restarting lead to expensive metadata exchange with istiod.
         default: false
         x-examples: [ true ]
       resourcesManagement:
