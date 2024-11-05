@@ -9,7 +9,7 @@ metadata:
 spec:
   nodeSelector:
     matchLabels:
-      node.deckhouse.io/virtualization-platform: "yes"
+      node.deckouse.io/dvp-nesting-level: "1"
   defaults:
     single-cluster-route: "true"
 {{- end }}
