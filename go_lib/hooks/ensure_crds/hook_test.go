@@ -64,7 +64,7 @@ func TestDeleteCRDs(t *testing.T) {
 	cluster := fake.NewFakeCluster(fake.ClusterVersionV125)
 	cluster.RegisterCRD("deckhouse.io", "v1alpha1", "ModuleSource", true)
 
-	inst, err := NewCRDsInstaller(cluster.Client, "./test_data/single.crd")
+	inst, err := NewCRDsInstaller(cluster.Client.Dynamic(), "./test_data/single.crd")
 	require.NoError(t, err)
 
 	merr := inst.Run(context.TODO())
@@ -86,7 +86,7 @@ func TestDeleteCRDs(t *testing.T) {
 		},
 	}
 
-	_, err = inst.k8sClient.Dynamic().Resource(gvr).Create(context.TODO(), msObject, apimachineryv1.CreateOptions{})
+	_, err = inst.client.Resource(gvr).Create(context.TODO(), msObject, apimachineryv1.CreateOptions{})
 	require.NoError(t, err)
 
 	// one cr is in the cluster
@@ -115,7 +115,7 @@ func TestDeleteCRDs(t *testing.T) {
 	assert.Equal(t, expected, result)
 
 	// no cr in the cluster
-	err = inst.k8sClient.Dynamic().Resource(gvr).Delete(context.TODO(), msObject.GetName(), apimachineryv1.DeleteOptions{})
+	err = inst.client.Resource(gvr).Delete(context.TODO(), msObject.GetName(), apimachineryv1.DeleteOptions{})
 	require.NoError(t, err)
 
 	// one crd should be deleted
