@@ -1,4 +1,4 @@
-{- if .Values.extendedMonitoring.certificates.exporterEnabled }}
+{{- if .Values.extendedMonitoring.certificates.exporterEnabled }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
