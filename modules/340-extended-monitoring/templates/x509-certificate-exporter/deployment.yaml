@@ -67,7 +67,7 @@ spec:
             {{- if not (.Values.global.enabledModules | has "vertical-pod-autoscaler") }}
             {{- include "cert_exporter_resources" . | nindent 12 }}
             {{- end }}
-        image: {{ include "helm_lib_module_image" (list . "x509-cert-exporter") }}
+        image: {{ include "helm_lib_module_image" (list . "x509CertificateExporter") }}
         imagePullPolicy: IfNotPresent
         args:
         - --watch-kube-secrets
