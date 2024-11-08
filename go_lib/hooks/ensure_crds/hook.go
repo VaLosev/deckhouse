@@ -32,10 +32,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimachineryv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
 
 	"github.com/deckhouse/deckhouse/go_lib/dependency"
-	"github.com/deckhouse/deckhouse/go_lib/dependency/k8s"
 )
 
 var crdGVR = schema.GroupVersionResource{
@@ -75,7 +75,7 @@ func EnsureCRDs(crdsGlob string, dc dependency.Container) *multierror.Error {
 		return result
 	}
 
-	cp, err := NewCRDsInstaller(client, crdsGlob)
+	cp, err := NewCRDsInstaller(client.Dynamic(), crdsGlob)
 	if err != nil {
 		result = multierror.Append(result, err)
 		return result
@@ -86,7 +86,7 @@ func EnsureCRDs(crdsGlob string, dc dependency.Container) *multierror.Error {
 
 // CRDsInstaller simultaneously installs CRDs from specified directory
 type CRDsInstaller struct {
-	k8sClient    k8s.Client
+	client       dynamic.Interface
 	crdFilesPath []string
 	installer    *addonoperator.CRDsInstaller
 
@@ -113,7 +113,7 @@ func (cp *CRDsInstaller) DeleteCRDs(ctx context.Context, crdsToDelete []string) 
 				Version:  version.Name,
 				Resource: crd.Spec.Names.Plural,
 			}
-			list, err := cp.k8sClient.Dynamic().Resource(gvr).List(ctx, apimachineryv1.ListOptions{})
+			list, err := cp.client.Resource(gvr).List(ctx, apimachineryv1.ListOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("error occurred listing %s CRD objects of version %s: %w", crdName, version.Name, err)
 			}
@@ -124,7 +124,7 @@ func (cp *CRDsInstaller) DeleteCRDs(ctx context.Context, crdsToDelete []string) 
 		}
 
 		if deleteCRD {
-			err := cp.k8sClient.Dynamic().Resource(crdGVR).Delete(ctx, crdName, apimachineryv1.DeleteOptions{})
+			err := cp.client.Resource(crdGVR).Delete(ctx, crdName, apimachineryv1.DeleteOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("error occurred deleting %s CRD: %w", crdName, err)
 			}
@@ -148,7 +148,7 @@ func (cp *CRDsInstaller) updateOrInsertCRD(ctx context.Context, crd *v1.CustomRe
 					return err
 				}
 
-				_, err = cp.k8sClient.Dynamic().Resource(crdGVR).Create(ctx, ucrd, apimachineryv1.CreateOptions{})
+				_, err = cp.client.Resource(crdGVR).Create(ctx, ucrd, apimachineryv1.CreateOptions{})
 				return err
 			}
 
@@ -175,7 +175,7 @@ func (cp *CRDsInstaller) updateOrInsertCRD(ctx context.Context, crd *v1.CustomRe
 			return err
 		}
 
-		_, err = cp.k8sClient.Dynamic().Resource(crdGVR).Update(ctx, ucrd, apimachineryv1.UpdateOptions{})
+		_, err = cp.client.Resource(crdGVR).Update(ctx, ucrd, apimachineryv1.UpdateOptions{})
 		return err
 	})
 }
@@ -183,7 +183,7 @@ func (cp *CRDsInstaller) updateOrInsertCRD(ctx context.Context, crd *v1.CustomRe
 func (cp *CRDsInstaller) getCRDFromCluster(ctx context.Context, crdName string) (*v1.CustomResourceDefinition, error) {
 	crd := &v1.CustomResourceDefinition{}
 
-	o, err := cp.k8sClient.Dynamic().Resource(crdGVR).Get(ctx, crdName, apimachineryv1.GetOptions{})
+	o, err := cp.client.Resource(crdGVR).Get(ctx, crdName, apimachineryv1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -198,14 +198,14 @@ func (cp *CRDsInstaller) getCRDFromCluster(ctx context.Context, crdName string) 
 
 // NewCRDsInstaller creates new installer for CRDs
 // crdsGlob example: "/deckhouse/modules/002-deckhouse/crds/*.yaml"
-func NewCRDsInstaller(client k8s.Client, crdsGlob string) (*CRDsInstaller, error) {
+func NewCRDsInstaller(client dynamic.Interface, crdsGlob string) (*CRDsInstaller, error) {
 	crds, err := filepath.Glob(crdsGlob)
 	if err != nil {
 		return nil, fmt.Errorf("glob %q: %w", crdsGlob, err)
 	}
 
 	return &CRDsInstaller{
-		k8sClient: client,
+		client: client,
 		installer: addonoperator.NewCRDsInstaller(
 			client,
 			crds,
