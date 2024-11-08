@@ -94,6 +94,7 @@ type CRDsInstaller struct {
 	k8sTasks *multierror.Group
 }
 
+// TODO: move to addonoperator.CRDsInstaller
 func (cp *CRDsInstaller) DeleteCRDs(ctx context.Context, crdsToDelete []string) ([]string, error) {
 	var deletedCRDs []string
 	// delete crds listed in crdsToDelete if there are no related custom resources in the cluster
