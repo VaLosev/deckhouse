@@ -255,7 +255,7 @@ var DefaultImagesDigests = map[string]interface{}{
 		"web":         "imageHash-documentation-web",
 	},
 	"extendedMonitoring": map[string]interface{}{
-		"certExporter":               "imageHash-extendedMonitoring-certExporter",
+		"x509CertificateExporter":    "imageHash-extendedMonitoring-x509CertificateExporter",
 		"eventsExporter":             "imageHash-extendedMonitoring-eventsExporter",
 		"extendedMonitoringExporter": "imageHash-extendedMonitoring-extendedMonitoringExporter",
 		"imageAvailabilityExporter":  "imageHash-extendedMonitoring-imageAvailabilityExporter",
