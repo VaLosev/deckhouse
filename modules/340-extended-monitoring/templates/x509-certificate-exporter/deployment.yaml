@@ -29,6 +29,7 @@ spec:
         memory: 100Mi
     {{- include "helm_lib_vpa_kube_rbac_proxy_resources" . | nindent 4 }}
 {{- end }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
