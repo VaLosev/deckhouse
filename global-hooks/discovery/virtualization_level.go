@@ -62,7 +62,17 @@ var _ = sdk.RegisterFunc(&go_hook.HookConfig{
 }, setGlobalVirtualizationLevel)
 
 func applyVirtualizationLevelFilter(obj *unstructured.Unstructured) (go_hook.FilterResult, error) {
-	return obj.GetName(), nil
+	secret := &corev1.Secret{}
+
+	err := sdk.FromUnstructured(obj, secret)
+	if err != nil {
+		return nil, err
+	}
+	virtualizationLevel, err := strconv.Atoi(string(secret.Data["level"]))
+	if err != nil {
+		return nil, err
+	}
+	return virtualizationLevel, nil
 }
 
 func applyMasterNodesFilter(obj *unstructured.Unstructured) (go_hook.FilterResult, error) {
@@ -82,43 +92,56 @@ func applyMasterNodesFilter(obj *unstructured.Unstructured) (go_hook.FilterResul
 
 func setGlobalVirtualizationLevel(input *go_hook.HookInput) error {
 	virtLevelSecretSnap := input.Snapshots["virtualization_level_secret"]
+	virtualizationLevel := 0
 
-	if len(virtLevelSecretSnap) == 0 {
+	if len(virtLevelSecretSnap) == 0 { // secret doesn't exist
 		input.LogEntry.Info("secret d8-virtualization-level not found, will be created automatically")
-		minimalVirtualizationLevel := math.MaxInt
-		for _, masterNodeInfoSnap := range input.Snapshots["master_nodes"] {
-			masterNodeInfo := masterNodeInfoSnap.(masterNodeInfo)
-			if masterNodeInfo.virtualizationLevel >= 0 && masterNodeInfo.virtualizationLevel < minimalVirtualizationLevel {
-				minimalVirtualizationLevel = masterNodeInfo.virtualizationLevel
-			}
-		}
-		if minimalVirtualizationLevel == math.MaxInt {
-			minimalVirtualizationLevel = 0
-		}
-		secret := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "d8-virtualization-level",
-				Namespace: "d8-system",
-				Labels: map[string]string{
-					"app":      "deckhouse",
-					"module":   "deckhouse",
-					"heritage": "deckhouse",
-				},
-			},
-			Data: map[string][]byte{"level": []byte(strconv.Itoa(minimalVirtualizationLevel))},
-		}
+		virtualizationLevel = getVirtualizationLevelFromMaterNodesLabels(input.Snapshots["master_nodes"])
 
-		input.PatchCollector.Create(secret, object_patch.UpdateIfExists())
-
-		input.Values.Set("global.discovery.dvpNestingLevel", minimalVirtualizationLevel)
-		input.LogEntry.Infof("set DVP nesting level to: %d", minimalVirtualizationLevel)
+		createSecretWithVirtualizationLevel(input, virtualizationLevel)
+	} else {
+		virtualizationLevel = virtLevelSecretSnap[0].(int)
 	}
 
+	input.Values.Set("global.discovery.dvpNestingLevel", virtualizationLevel)
+	input.LogEntry.Infof("set DVP nesting level to: %d", virtualizationLevel)
+
 	return nil
+}
+
+func createSecretWithVirtualizationLevel(input *go_hook.HookInput, level int) {
+	secret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "d8-virtualization-level",
+			Namespace: "d8-system",
+			Labels: map[string]string{
+				"app":      "deckhouse",
+				"module":   "deckhouse",
+				"heritage": "deckhouse",
+			},
+		},
+		Data: map[string][]byte{"level": []byte(strconv.Itoa(level))},
+	}
+
+	input.PatchCollector.Create(secret, object_patch.UpdateIfExists())
+}
+
+func getVirtualizationLevelFromMaterNodesLabels(masterNodeInfoSnaps []go_hook.FilterResult) int {
+	minimalVirtualizationLevel := math.MaxInt
+	for _, masterNodeInfoSnap := range masterNodeInfoSnaps {
+		masterNodeInfo := masterNodeInfoSnap.(masterNodeInfo)
+		if masterNodeInfo.virtualizationLevel >= 0 && masterNodeInfo.virtualizationLevel < minimalVirtualizationLevel {
+			minimalVirtualizationLevel = masterNodeInfo.virtualizationLevel
+		}
+	}
+	if minimalVirtualizationLevel == math.MaxInt {
+		minimalVirtualizationLevel = 0
+	}
+	return minimalVirtualizationLevel
 }
 
 type masterNodeInfo struct {
