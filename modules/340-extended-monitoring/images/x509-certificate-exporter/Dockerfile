@@ -26,6 +26,3 @@ FROM $BASE_DISTROLESS
 COPY --from=artifact /x509-certificate-exporter/x509-certificate-exporter /x509-certificate-exporter
 
 ENTRYPOINT ["/x509-certificate-exporter"]
-
-
-# init build

@@ -71,13 +71,6 @@ spec:
         image: {{ include "helm_lib_module_image" (list . "x509CertificateExporter") }}
         imagePullPolicy: IfNotPresent
         args:
-        - --watch-kube-secrets
-        - --secret-type=kubernetes.io/tls:tls.crt
-        - --secret-type=Opaque:cert.crt
-        - --secret-type=Opaque:tls.crt
-        - --max-cache-duration=600s
-        - --kube-api-rate-limit-qps=5
-        - --kube-api-rate-limit-burst=10
         - --listen-address=:9793
         ports:
         - name: metrics
