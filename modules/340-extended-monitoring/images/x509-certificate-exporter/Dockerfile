@@ -11,9 +11,9 @@ ARG GOPROXY
 ENV SOURCE_REPO=${SOURCE_REPO}
 ENV GOPROXY=${GOPROXY}
 
+# trigger build
 WORKDIR /x509-certificate-exporter
-RUN apk add --no-cache go git && \
-    git clone --depth 1 --branch v${VERSION} https://github.com/enix/x509-certificate-exporter.git . && \
+RUN git clone --depth 1 --branch v${VERSION} https://github.com/enix/x509-certificate-exporter.git . && \
     go build -v -tags netgo,osusergo ./cmd/x509-certificate-exporter && \
     chown -R 64535:64535 /x509-certificate-exporter/ && \
     chmod 0700 /x509-certificate-exporter/x509-certificate-exporter
