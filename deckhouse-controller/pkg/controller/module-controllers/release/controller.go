@@ -31,8 +31,10 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/flant/addon-operator/pkg/app"
 	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	addonutils "github.com/flant/addon-operator/pkg/utils"
+	shapp "github.com/flant/shell-operator/pkg/app"
 	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 	openapierrors "github.com/go-openapi/errors"
 	"github.com/gofrs/uuid/v5"
@@ -62,8 +64,6 @@ import (
 	"github.com/deckhouse/deckhouse/go_lib/dependency/extenders"
 	"github.com/deckhouse/deckhouse/go_lib/updater"
 	"github.com/deckhouse/deckhouse/pkg/log"
-	"github.com/flant/addon-operator/pkg/app"
-	shapp "github.com/flant/shell-operator/pkg/app"
 )
 
 // moduleReleaseReconciler is the controller implementation for ModuleRelease resources

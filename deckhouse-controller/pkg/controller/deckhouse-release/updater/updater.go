@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"time"
 
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,7 +33,6 @@ import (
 	"github.com/deckhouse/deckhouse/go_lib/dependency"
 	"github.com/deckhouse/deckhouse/go_lib/updater"
 	"github.com/deckhouse/deckhouse/pkg/log"
-	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 )
 
 const (
