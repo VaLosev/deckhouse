@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/flant/addon-operator/pkg/app"
 	"github.com/flant/addon-operator/pkg/module_manager/loader"
 	"github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	"github.com/flant/addon-operator/pkg/utils"
@@ -124,7 +125,7 @@ func (l *Loader) processModuleDefinition(def *Definition) (*Module, error) {
 	// load values for the module
 	valuesModuleName := utils.ModuleNameToValuesKey(def.Name)
 	// 1. from static values.yaml inside the module
-	moduleStaticValues, err := utils.LoadValuesFileFromDir(def.Path)
+	moduleStaticValues, err := utils.LoadValuesFileFromDir(def.Path, app.StrictModeEnabled)
 	if err != nil {
 		return nil, err
 	}
