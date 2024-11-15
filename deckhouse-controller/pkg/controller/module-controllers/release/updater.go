@@ -26,7 +26,7 @@ import (
 	"time"
 
 	addonutils "github.com/flant/addon-operator/pkg/utils"
-	"github.com/flant/shell-operator/pkg/metric_storage"
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 	cp "github.com/otiai10/copy"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,7 +42,7 @@ import (
 )
 
 func newModuleUpdater(dc dependency.Container, logger *log.Logger, settings *updater.Settings,
-	kubeAPI updater.KubeAPI[*v1alpha1.ModuleRelease], enabledModules []string, metricStorage *metric_storage.MetricStorage,
+	kubeAPI updater.KubeAPI[*v1alpha1.ModuleRelease], enabledModules []string, metricStorage *metricstorage.MetricStorage,
 ) *updater.Updater[*v1alpha1.ModuleRelease] {
 	return updater.NewUpdater[*v1alpha1.ModuleRelease](dc, logger, settings,
 		updater.DeckhouseReleaseData{}, true, false, kubeAPI, newMetricsUpdater(metricStorage, enabledModules),
@@ -247,11 +247,11 @@ func (k *kubeAPI) updateModuleReleaseDownloadStatistic(ctx context.Context, rele
 }
 
 type metricsUpdater struct {
-	metricStorage  *metric_storage.MetricStorage
+	metricStorage  *metricstorage.MetricStorage
 	enabledModules []string
 }
 
-func newMetricsUpdater(metricStorage *metric_storage.MetricStorage, enabledModules []string) *metricsUpdater {
+func newMetricsUpdater(metricStorage *metricstorage.MetricStorage, enabledModules []string) *metricsUpdater {
 	return &metricsUpdater{
 		enabledModules: enabledModules,
 		metricStorage:  metricStorage,

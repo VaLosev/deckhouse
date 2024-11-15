@@ -17,21 +17,21 @@ limitations under the License.
 package d8updater
 
 import (
-	"github.com/flant/shell-operator/pkg/metric_storage"
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha1"
 )
 
 const metricReleasesGroup = "d8_releases"
 
-func newMetricUpdater(metricStorage *metric_storage.MetricStorage) *metricUpdater {
+func newMetricUpdater(metricStorage *metricstorage.MetricStorage) *metricUpdater {
 	return &metricUpdater{
 		metricStorage: metricStorage,
 	}
 }
 
 type metricUpdater struct {
-	metricStorage *metric_storage.MetricStorage
+	metricStorage *metricstorage.MetricStorage
 }
 
 func (mu metricUpdater) WaitingManual(release *v1alpha1.DeckhouseRelease, totalPendingManualReleases float64) {

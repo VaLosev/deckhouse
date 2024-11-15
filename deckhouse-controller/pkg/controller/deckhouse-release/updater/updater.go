@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/flant/shell-operator/pkg/metric_storage"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +32,7 @@ import (
 	"github.com/deckhouse/deckhouse/go_lib/dependency"
 	"github.com/deckhouse/deckhouse/go_lib/updater"
 	"github.com/deckhouse/deckhouse/pkg/log"
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 )
 
 const (
@@ -41,7 +41,7 @@ const (
 )
 
 func NewDeckhouseUpdater(logger *log.Logger, client client.Client, dc dependency.Container,
-	updateSettings *updater.Settings, releaseData updater.DeckhouseReleaseData, metricStorage *metric_storage.MetricStorage,
+	updateSettings *updater.Settings, releaseData updater.DeckhouseReleaseData, metricStorage *metricstorage.MetricStorage,
 	podIsReady, clusterBootstrapping bool, imagesRegistry string, enabledModules []string,
 ) (*updater.Updater[*v1alpha1.DeckhouseRelease], error) {
 	return updater.NewUpdater[*v1alpha1.DeckhouseRelease](dc, logger, updateSettings, releaseData,

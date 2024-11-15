@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/flant/addon-operator/pkg/app"
 	"github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	"github.com/flant/addon-operator/pkg/utils"
 	"gopkg.in/yaml.v3"
@@ -89,7 +90,7 @@ func (dml *DeckhouseController) processModuleDefinition(def models.DeckhouseModu
 	// load values for module
 	valuesModuleName := utils.ModuleNameToValuesKey(def.Name)
 	// 1. from static values.yaml inside the module
-	moduleStaticValues, err := utils.LoadValuesFileFromDir(def.Path)
+	moduleStaticValues, err := utils.LoadValuesFileFromDir(def.Path, app.StrictModeEnabled)
 	if err != nil {
 		return nil, err
 	}

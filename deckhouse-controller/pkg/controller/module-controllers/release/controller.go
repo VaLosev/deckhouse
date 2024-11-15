@@ -33,7 +33,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	addonutils "github.com/flant/addon-operator/pkg/utils"
-	"github.com/flant/shell-operator/pkg/metric_storage"
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 	openapierrors "github.com/go-openapi/errors"
 	"github.com/gofrs/uuid/v5"
 	"github.com/hashicorp/go-multierror"
@@ -64,6 +64,8 @@ import (
 	"github.com/deckhouse/deckhouse/go_lib/dependency/extenders"
 	"github.com/deckhouse/deckhouse/go_lib/updater"
 	"github.com/deckhouse/deckhouse/pkg/log"
+	"github.com/flant/addon-operator/pkg/app"
+	shapp "github.com/flant/shell-operator/pkg/app"
 )
 
 // moduleReleaseReconciler is the controller implementation for ModuleRelease resources
@@ -71,7 +73,7 @@ type moduleReleaseReconciler struct {
 	client client.Client
 
 	dc            dependency.Container
-	metricStorage *metric_storage.MetricStorage
+	metricStorage *metricstorage.MetricStorage
 	logger        *log.Logger
 
 	moduleManager        moduleManager
@@ -106,7 +108,7 @@ func NewModuleReleaseController(
 	dc dependency.Container,
 	embeddedPolicyContainer *helpers.ModuleUpdatePolicySpecContainer,
 	mm moduleManager,
-	metricStorage *metric_storage.MetricStorage,
+	metricStorage *metricstorage.MetricStorage,
 	preflightCountDown *sync.WaitGroup,
 	logger *log.Logger,
 ) error {
@@ -1045,7 +1047,7 @@ func validateModule(def models.DeckhouseModuleDefinition, values addonutils.Valu
 	if err != nil {
 		return fmt.Errorf("read open API files: %w", err)
 	}
-	dm, err := addonmodules.NewBasicModule(def.Name, def.Path, def.Weight, nil, cb, vb, logger.Named("basic-module"))
+	dm, err := addonmodules.NewBasicModule(def.Name, def.Path, def.Weight, nil, cb, vb, app.CRDsFilters, shapp.DebugKeepTmpFiles, logger.Named("basic-module"))
 	if err != nil {
 		return fmt.Errorf("new deckhouse module: %w", err)
 	}

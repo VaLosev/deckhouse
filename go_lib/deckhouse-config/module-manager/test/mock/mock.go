@@ -97,7 +97,7 @@ func NewModule(name, path string, enabledByScript *bool, logger *log.Logger) (*M
 		return nil, fmt.Errorf("read open API files: %w", err)
 	}
 
-	bm, err := modules.NewBasicModule(name, "mockpath", 100, nil, cb, vb, logger)
+	bm, err := modules.NewBasicModule(name, "mockpath", 100, nil, cb, vb, "", false, logger)
 	if err != nil {
 		return nil, fmt.Errorf("new basic module: %w", err)
 	}

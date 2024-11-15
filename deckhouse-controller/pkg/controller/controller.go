@@ -29,7 +29,7 @@ import (
 	"github.com/flant/addon-operator/pkg/module_manager"
 	"github.com/flant/addon-operator/pkg/module_manager/models/modules/events"
 	"github.com/flant/addon-operator/pkg/utils"
-	"github.com/flant/shell-operator/pkg/metric_storage"
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	coordv1 "k8s.io/api/coordination/v1"
@@ -86,7 +86,7 @@ type DeckhouseController struct {
 	mm         *module_manager.ModuleManager // probably it's better to set it via the interface
 	kubeClient *versioned.Clientset
 
-	metricStorage *metric_storage.MetricStorage
+	metricStorage *metricstorage.MetricStorage
 
 	deckhouseModules map[string]*models.DeckhouseModule
 	// <module-name>: <module-source>
@@ -97,7 +97,7 @@ type DeckhouseController struct {
 	logger *log.Logger
 }
 
-func NewDeckhouseController(ctx context.Context, config *rest.Config, mm *module_manager.ModuleManager, metricStorage *metric_storage.MetricStorage, logger *log.Logger) (*DeckhouseController, error) {
+func NewDeckhouseController(ctx context.Context, config *rest.Config, mm *module_manager.ModuleManager, metricStorage *metricstorage.MetricStorage, logger *log.Logger) (*DeckhouseController, error) {
 	mcClient, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("versioned client creating: %w", err)
