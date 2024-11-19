@@ -12,7 +12,7 @@ ENV GOPROXY=${GOPROXY}
 
 WORKDIR /x509-certificate-exporter
 RUN apk add --no-cache go git make && \
-    git clone --depth 1 --branch v${VERSION} ${SOURCE_REPO}/3p/enix/x509-certificate-exporter.git . && \
+    git clone --depth 1 --branch v${VERSION} ${SOURCE_REPO}/enix/x509-certificate-exporter.git . && \
     go build -v -tags netgo,osusergo ./cmd/x509-certificate-exporter && \
     chown -R 64535:64535 /x509-certificate-exporter/ && \
     chmod 0700 /x509-certificate-exporter/x509-certificate-exporter
