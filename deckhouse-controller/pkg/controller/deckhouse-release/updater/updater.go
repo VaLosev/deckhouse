@@ -65,7 +65,7 @@ func NewDeckhouseUpdater(
 		podIsReady,
 		clusterBootstrapping,
 		NewKubeAPI(client, dc, imagesRegistry),
-		newMetricsUpdater(metricStorage),
+		newMetricUpdater(metricStorage),
 		newWebhookDataSource(logger),
 		enabledModules,
 	)
