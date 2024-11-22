@@ -19,7 +19,8 @@ import typing
 
 from dotmap import DotMap
 from deckhouse import hook
-from node_group import main
+from node_group import main, NodeGroupConversionDispatcher
+
 
 def _assert_conversion(t: unittest.TestCase, o: hook.Output, res: dict | typing.List[dict], failed_msg: str | None):
     d = o.conversions.data
@@ -36,6 +37,117 @@ def _assert_conversion(t: unittest.TestCase, o: hook.Output, res: dict | typing.
         expected = [res]
 
     t.assertEqual(d[0]["convertedObjects"], expected)
+
+
+def test_dispatcher_for_unit_tests() -> NodeGroupConversionDispatcher:
+    output = hook.Output(
+        hook.MetricsCollector(),
+        hook.KubeOperationCollector(),
+        hook.ValuesPatchesCollector({}),
+        hook.ConversionsCollector(),
+        hook.ValidationsCollector(),
+    )
+    return NodeGroupConversionDispatcher(hook.Context({}, {}, {}, output))
+
+
+
+class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
+    def test_not_alpha1_should_return_same_object(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+            }
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests().alpha1_to_alpha2(DotMap(obj))
+
+        self.assertIsNone(err)
+        self.assertEqual(obj, res_obj.toDict())
+
+
+    def test_should_remove_static_and_spec_kubernetes_version(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "kubernetesVersion": "1.11"
+            },
+            "static": {
+                "internalNetworkCIDR": "127.0.0.1/8"
+            }
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests().alpha1_to_alpha2(DotMap(obj))
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj.toDict(), {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+            },
+        })
+
+
+    def test_should_move_docker_to_cri_docker_cri_not_set(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "docker": {
+                    "manage": False,
+                    "maxConcurrentDownloads": 4
+                }
+            },
+
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests().alpha1_to_alpha2(DotMap(obj))
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj.toDict(), {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                }
+            },
+        })
+
 
 class TestGroupValidationWebhook(unittest.TestCase):
     def test_should_convert_from_v1_to_alpha2(self):
@@ -221,6 +333,7 @@ class TestGroupValidationWebhook(unittest.TestCase):
 
         _assert_conversion(self, out, {}, None)
 
+
     def test_should_convert_from_alpha2_to_alpha1(self):
         ctx = {
             "binding": "alpha2_to_alpha1",
@@ -400,11 +513,9 @@ class TestGroupValidationWebhook(unittest.TestCase):
             "type": "Conversion"
         }
 
-
         out = hook.testrun(main, [ctx])
 
         _assert_conversion(self, out, {}, None)
-
 
 
     def test_should_convert_from_alpha2_to_v1(self):
@@ -586,11 +697,9 @@ class TestGroupValidationWebhook(unittest.TestCase):
             "type": "Conversion"
         }
 
-
         out = hook.testrun(main, [ctx])
 
         _assert_conversion(self, out, {}, None)
-
 
 
     def test_should_convert_from_alpha1_to_alpha2(self):
@@ -742,7 +851,6 @@ class TestGroupValidationWebhook(unittest.TestCase):
             "toVersion": "deckhouse.io/v1alpha2",
             "type": "Conversion"
         }
-
 
         out = hook.testrun(main, [ctx])
 

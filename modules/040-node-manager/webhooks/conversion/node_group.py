@@ -19,6 +19,7 @@ import typing
 from dotmap import DotMap
 from deckhouse import hook
 
+
 config = """
 configVersion: v1
 kubernetes:
@@ -66,8 +67,10 @@ class ConversionDispatcher:
         self._snapshots = DotMap(ctx.snapshots)
         self.__ctx = ctx
 
+
     def run(self):
         binding_name = self._binding_context.binding
+
         try:
             action = getattr(self, binding_name)
         except AttributeError:
@@ -75,38 +78,61 @@ class ConversionDispatcher:
             return
 
         try:
-            error_msg, res_obj = action()
-            if error_msg is None:
-                if not isinstance(res_obj, dict):
-                    raise TypeError("Result of conversion should be dict")
-                self.__ctx.output.conversions.collect(res_obj)
-            else:
-                self.__ctx.output.conversions.error(error_msg)
+            errors = []
+            for obj in self._binding_context.review.request.objects:
+                error_msg, res_obj = action(obj)
+                if error_msg is not None:
+                    errors.append(error_msg)
+                    continue
+                self.__ctx.output.conversions.collect(obj.toDict())
+            if errors:
+                err_msg = ";".join(errors)
+                self.__ctx.output.conversions.error(err_msg)
         except Exception as e:
             self.__ctx.output.conversions.error("Internal error. Catch exception: {}".format(str(e)))
             return
 
-    def _get_objects(self) -> typing.List[DotMap]:
-        return self._binding_context.review.request.objects
 
 class NodeGroupConversionDispatcher(ConversionDispatcher):
     def __init__(self, ctx: hook.Context):
         super().__init__(ctx)
 
-    def v1_to_alpha2(self) -> typing.Tuple[str | None, dict]:
-        return None, {}
 
-    def alpha2_to_alpha1(self) -> typing.Tuple[str | None, dict]:
-        return None, {}
+    def alpha1_to_alpha2(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
+        if obj.apiVersion != "deckhouse.io/v1alpha1":
+            return None, obj
 
-    def alpha2_to_v1(self) -> typing.Tuple[str | None, dict]:
-        return None, {}
+        obj.apiVersion = "deckhouse.io/v1alpha2"
+        if "docker" in obj.spec:
+            if "cri" not in obj.spec:
+                obj.spec.cri = DotMap({})
+            obj.spec.cri.docker = obj.spec.docker
+            del obj.spec.docker
 
-    def alpha1_to_alpha2(self) -> typing.Tuple[str | None, dict]:
-        return None, {}
+        if "kubernetesVersion" in obj.spec:
+            del obj.spec.kubernetesVersion
+
+        if "static" in obj:
+            del obj.static
+
+        return None, obj
+
+
+    def v1_to_alpha2(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
+        return None, obj
+
+
+    def alpha2_to_alpha1(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
+        return None, obj
+
+
+    def alpha2_to_v1(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
+        return None, obj
+
 
 def main(ctx: hook.Context):
     NodeGroupConversionDispatcher(ctx).run()
+
 
 if __name__ == "__main__":
     hook.run(main, config=config)
