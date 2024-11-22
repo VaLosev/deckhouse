@@ -225,30 +225,31 @@
 </div>
 {%- unless site.mode == "module" %}
 {%- if page.lang == "ru" %}
-{%- assign l2MenuData = site.data.topnav-l2-products[page.lang] %}
-{%- if l2MenuData %}
-  {%- assign productCode = page.productCode | default: "kubernetes-platform" %}
-  {%- assign _conditionProductURL = "/products/" | append: productCode | append: "/" %}
-  {%- assign productMenuData = l2MenuData | where: "url", _conditionProductURL | first %}
-  {%- assign productLogoURL = "/images/sprite.svg#" | append: productCode | append: "-icon" %}
-  {%- assign productName = productMenuData.title %}
-  <div class="header header__product-menu">
-    <div class="container">
-      <div class="header__product-menu-logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-           <use xlink:href="{{ productLogoURL }}"></use>
-        </svg>
-        <span>{{ productName }}</span>
+  {%- assign l2MenuData = site.data.topnav-l2-products[page.lang] %}
+  {%- if l2MenuData %}
+    {%- assign productCode = page.productCode | default: "kubernetes-platform" %}
+    {%- assign _conditionProductURL = "/products/" | append: productCode | append: "/" %}
+    {%- assign productMenuData = l2MenuData | where: "url", _conditionProductURL | first %}
+    {%- assign productLogoURL = "/images/sprite.svg#" | append: productCode | append: "-icon" %}
+    {%- assign productName = productMenuData.title %}
+    <div class="header header__product-menu">
+      <div class="container">
+        <div class="header__product-menu-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+             <use xlink:href="{{ productLogoURL }}"></use>
+          </svg>
+          <span>{{ productName }}</span>
+        </div>
+    {%- if page.lang == 'ru' %}
+        <ul class="nav">
+          {%- for item in productMenuData.items %}
+            {%- if item.rel == "doc" %}{% assign itemClass='class="active"' %}{% else %}{% assign itemClass='' %}{% endif %}
+            <li {{ itemClass }}><a href="{{ item.url }}"{% if item.target.size > 0 %} target="{{ item.target }}"{% endif %}>{{ item.title }}</a></li>
+          {%- endfor %}
+        </ul>
+    {%- endif %}
       </div>
-  {%- if page.lang == 'ru' %}
-      <ul class="nav">
-        {%- for item in productMenuData.items %}
-          {%- if item.rel == "doc" %}{% assign itemClass='class="active"' %}{% else %}{% assign itemClass='' %}{% endif %}
-          <li {{ itemClass }}><a href="{{ item.url }}"{% if item.target.size > 0 %} target="{{ item.target }}"{% endif %}>{{ item.title }}</a></li>
-        {%- endfor %}
-      </ul>
-  {%- endif %}
     </div>
-  </div>
+  {%- endif %}
 {%- endif %}
 {%- endunless %}
