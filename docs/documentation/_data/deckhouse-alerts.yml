@@ -3666,6 +3666,17 @@ alerts:
         Storage class {{ $labels.storageclass }} uses the deprecated rbd provisioner. It is necessary to migrate the volumes to the Ceph CSI driver.
       severity: "9"
       markupFormat: markdown
+    - name: ModuleConfigObsoleteVersion
+      sourceFile: modules/340-monitoring-deckhouse/monitoring/prometheus-rules/alerting.yaml
+      moduleUrl: 340-monitoring-deckhouse
+      module: monitoring-deckhouse
+      edition: ce
+      description: |
+        ModuleConfig {{ $labels.name }} has an obsolete version, update to the latest.
+      summary: |
+        ModuleConfig {{ $labels.name }} has an obsolete version.
+      severity: "4"
+      markupFormat: markdown
     - name: ModuleConfigDeprecated
       sourceFile: modules/810-documentation/monitoring/prometheus-rules/deprecated-mc.yaml
       moduleUrl: 810-documentation
