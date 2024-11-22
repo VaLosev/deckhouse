@@ -144,6 +144,11 @@ var (
 			"properties.internal.properties.providerClusterConfiguration.properties.apiVersion",
 			"properties.internal.properties.providerDiscoveryData.properties.apiVersion",
 		},
+		"modules/030-cloud-provider-dynamix/openapi/values.yaml": {
+			// ignore internal values
+			"properties.internal.properties.providerClusterConfiguration.properties.apiVersion",
+			"properties.internal.properties.providerDiscoveryData.properties.apiVersion",
+		},
 		"ee/modules/030-cloud-provider-vcd/openapi/values.yaml": {
 			// ignore internal values
 			"properties.internal.properties.providerDiscoveryData.properties.apiVersion",
@@ -194,6 +199,10 @@ var (
 		"modules/380-metallb/openapi/config-values.yaml": {
 			// ignore enum values
 			"properties.addressPools.items.properties.protocol",
+		},
+		"modules/400-descheduler/openapi/values.yaml": {
+			// ignore enum values
+			"properties.internal.properties.deschedulers.items.properties.strategies.properties.removePodsViolatingNodeAffinity.properties.nodeAffinityType.items",
 		},
 		"ee/modules/380-metallb/openapi/config-values.yaml": {
 			// ignore enum values
