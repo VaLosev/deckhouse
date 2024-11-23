@@ -21,8 +21,21 @@ from dotmap import DotMap
 from deckhouse import hook
 from node_group import main, NodeGroupConversionDispatcher
 
+def assert_common_resource_fields(t: unittest.TestCase, obj: dict, api_version: str, name: str, namespace: str = ""):
+    t.assertIn("apiVersion", obj)
+    t.assertEqual(obj["apiVersion"], api_version)
 
-def _assert_conversion(t: unittest.TestCase, o: hook.Output, res: dict | typing.List[dict], failed_msg: str | None):
+    t.assertIn("metadata", obj)
+
+    t.assertIn("name", obj["metadata"])
+    t.assertEqual(obj["metadata"]["name"], name)
+
+    if namespace:
+        t.assertIn("namespace", obj["metadata"])
+        t.assertEqual(obj["metadata"]["namespace"], namespace)
+
+
+def _assert_conversion(t: unittest.TestCase, o: hook.Output, res: dict | typing.List[dict] | typing.Callable[[unittest.TestCase, typing.List[dict]], None], failed_msg: str | None):
     d = o.conversions.data
 
     t.assertEqual(len(d), 1)
@@ -32,9 +45,14 @@ def _assert_conversion(t: unittest.TestCase, o: hook.Output, res: dict | typing.
         t.assertEqual(d[0]["failedMessage"], failed_msg)
         return
 
+    if callable(res):
+        res(t, d[0]["convertedObjects"])
+        return
+
     expected = res
     if isinstance(res, dict):
         expected = [res]
+
 
     t.assertEqual(d[0]["convertedObjects"], expected)
 
@@ -598,7 +616,7 @@ class TestGroupValidationWebhook(unittest.TestCase):
             "fromVersion": "deckhouse.io/v1",
             "review": {
                 "request": {
-                    "uid": "54896fc3-89d1-466e-a90d-63a829f8233b",
+                    "uid": "76bbb5fd-9289-4175-bd86-182d28a64689",
                     "desiredAPIVersion": "deckhouse.io/v1alpha1",
                     "objects": [
                         {
@@ -695,7 +713,7 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         "manager": "deckhouse-controller",
                                         "operation": "Update",
                                         "subresource": "status",
-                                        "time": "2024-11-22T13:51:16Z"
+                                        "time": "2024-11-23T18:10:49Z"
                                     }
                                 ],
                                 "name": "worker-static",
@@ -749,11 +767,11 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                 "deckhouse": {
                                     "observed": {
                                         "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
-                                        "lastTimestamp": "2024-11-22T13:50:06Z"
+                                        "lastTimestamp": "2024-11-23T18:10:08Z"
                                     },
                                     "processed": {
                                         "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
-                                        "lastTimestamp": "2024-11-22T13:51:15Z"
+                                        "lastTimestamp": "2024-11-23T18:10:49Z"
                                     },
                                     "synced": "True"
                                 },
@@ -773,7 +791,25 @@ class TestGroupValidationWebhook(unittest.TestCase):
 
         out = hook.testrun(main, [ctx])
 
-        _assert_conversion(self, out, {}, None)
+        def assert_api_version_and_node_type_changed_and_another_not_changed(t: unittest.TestCase, objects: typing.List[dict]):
+            t.assertEqual(len(objects), 1)
+            o = objects[0]
+
+            assert_common_resource_fields(t, o, "deckhouse.io/v1alpha2", "worker-static")
+
+            obj = DotMap(o)
+
+            # assert nodeTypeChanged
+            t.assertEqual(obj.spec.nodeType, "Hybrid")
+
+            # assert some fields cannot changed
+            t.assertIn("aaaa", obj.spec.nodeTemplate.labels)
+            t.assertEqual(obj.spec.nodeTemplate.labels.aaaa, "bbbb")
+            t.assertEqual(obj.status.kubernetesVersion, "1.27")
+            t.assertEqual(obj.status.ready, 0)
+
+
+        _assert_conversion(self, out, assert_api_version_and_node_type_changed_and_another_not_changed, None)
 
 
     def test_should_convert_from_alpha2_to_alpha1(self):
@@ -782,15 +818,15 @@ class TestGroupValidationWebhook(unittest.TestCase):
             "fromVersion": "deckhouse.io/v1alpha2",
             "review": {
                 "request": {
-                    "uid": "e8a2a24c-2232-480d-a188-2589de68c684",
+                    "uid": "93577800-3941-410b-a946-4c370ffc8ee8",
                     "desiredAPIVersion": "deckhouse.io/v1alpha1",
                     "objects": [
                         {
                             "apiVersion": "deckhouse.io/v1alpha2",
                             "kind": "NodeGroup",
                             "metadata": {
-                                "creationTimestamp": "2023-10-16T10:03:38Z",
-                                "generation": 3,
+                                "creationTimestamp": "2023-06-06T08:23:11Z",
+                                "generation": 13,
                                 "managedFields": [
                                     {
                                         "apiVersion": "deckhouse.io/v1",
@@ -798,34 +834,53 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         "fieldsV1": {
                                             "f:spec": {
                                                 ".": {},
+                                                "f:cloudInstances": {
+                                                    ".": {},
+                                                    "f:classReference": {
+                                                        ".": {},
+                                                        "f:kind": {},
+                                                        "f:name": {}
+                                                    },
+                                                    "f:maxSurgePerZone": {},
+                                                    "f:maxUnavailablePerZone": {},
+                                                    "f:priority": {}
+                                                },
+                                                "f:cri": {
+                                                    ".": {},
+                                                    "f:type": {}
+                                                },
                                                 "f:disruptions": {
                                                     ".": {},
                                                     "f:approvalMode": {}
+                                                },
+                                                "f:nodeTemplate": {
+                                                    ".": {},
+                                                    "f:labels": {
+                                                        ".": {},
+                                                        "f:aaaaa": {}
+                                                    }
                                                 },
                                                 "f:nodeType": {}
                                             }
                                         },
                                         "manager": "kubectl-create",
                                         "operation": "Update",
-                                        "time": "2023-10-16T10:03:38Z"
+                                        "time": "2023-06-06T08:23:11Z"
                                     },
                                     {
                                         "apiVersion": "deckhouse.io/v1",
                                         "fieldsType": "FieldsV1",
                                         "fieldsV1": {
                                             "f:spec": {
-                                                "f:nodeTemplate": {
-                                                    ".": {},
-                                                    "f:labels": {
-                                                        ".": {},
-                                                        "f:aaaa": {}
-                                                    }
+                                                "f:cloudInstances": {
+                                                    "f:maxPerZone": {},
+                                                    "f:minPerZone": {}
                                                 }
                                             }
                                         },
                                         "manager": "kubectl-edit",
                                         "operation": "Update",
-                                        "time": "2023-10-16T10:06:01Z"
+                                        "time": "2023-06-06T15:12:35Z"
                                     },
                                     {
                                         "apiVersion": "deckhouse.io/v1",
@@ -833,7 +888,11 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         "fieldsV1": {
                                             "f:spec": {
                                                 "f:kubelet": {
+                                                    ".": {},
+                                                    "f:containerLogMaxFiles": {},
+                                                    "f:containerLogMaxSize": {},
                                                     "f:resourceReservation": {
+                                                        ".": {},
                                                         "f:mode": {}
                                                     }
                                                 }
@@ -841,7 +900,7 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         },
                                         "manager": "deckhouse-controller",
                                         "operation": "Update",
-                                        "time": "2024-01-30T07:08:03Z"
+                                        "time": "2023-07-26T07:47:00Z"
                                     },
                                     {
                                         "apiVersion": "deckhouse.io/v1",
@@ -869,8 +928,13 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                                     },
                                                     "f:synced": {}
                                                 },
+                                                "f:desired": {},
                                                 "f:error": {},
+                                                "f:instances": {},
                                                 "f:kubernetesVersion": {},
+                                                "f:lastMachineFailures": {},
+                                                "f:max": {},
+                                                "f:min": {},
                                                 "f:nodes": {},
                                                 "f:ready": {},
                                                 "f:upToDate": {}
@@ -879,13 +943,31 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         "manager": "deckhouse-controller",
                                         "operation": "Update",
                                         "subresource": "status",
-                                        "time": "2024-11-22T16:40:04Z"
+                                        "time": "2024-11-23T18:40:42Z"
                                     }
                                 ],
-                                "name": "worker-static",
-                                "uid": "5a5e3820-5fdd-4fea-a8cf-032586ae0be5"
+                                "name": "p-90",
+                                "uid": "83bc46fa-bc40-4829-9414-82099680797b"
                             },
                             "spec": {
+                                "cloudInstances": {
+                                    "classReference": {
+                                        "kind": "OpenStackInstanceClass",
+                                        "name": "p-90"
+                                    },
+                                    "maxPerZone": 0,
+                                    "maxSurgePerZone": 0,
+                                    "maxUnavailablePerZone": 0,
+                                    "minPerZone": 0,
+                                    "priority": 90
+                                },
+                                "cri": {
+                                    "type": "Docker",
+                                    "docker": {
+                                        "manage": False,
+                                        "maxConcurrentDownloads": 4
+                                    }
+                                },
                                 "disruptions": {
                                     "approvalMode": "Automatic"
                                 },
@@ -898,10 +980,10 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                 },
                                 "nodeTemplate": {
                                     "labels": {
-                                        "aaaa": "bbbb"
+                                        "aaaaa": ""
                                     }
                                 },
-                                "nodeType": "Hybrid"
+                                "nodeType": "Cloud"
                             },
                             "status": {
                                 "conditionSummary": {
@@ -910,39 +992,49 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                 },
                                 "conditions": [
                                     {
-                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
+                                        "lastTransitionTime": "2023-06-15T12:07:25Z",
                                         "status": "True",
                                         "type": "Ready"
                                     },
                                     {
-                                        "lastTransitionTime": "2023-10-26T12:24:02Z",
+                                        "lastTransitionTime": "2023-06-15T12:07:25Z",
                                         "status": "False",
                                         "type": "Updating"
                                     },
                                     {
-                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
+                                        "lastTransitionTime": "2023-06-06T08:23:11Z",
                                         "status": "False",
                                         "type": "WaitingForDisruptiveApproval"
                                     },
                                     {
-                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
+                                        "lastTransitionTime": "2023-06-15T12:06:51Z",
                                         "status": "False",
                                         "type": "Error"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2023-06-15T12:07:25Z",
+                                        "status": "False",
+                                        "type": "Scaling"
                                     }
                                 ],
                                 "deckhouse": {
                                     "observed": {
-                                        "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
-                                        "lastTimestamp": "2024-11-22T16:40:04Z"
+                                        "checkSum": "fcdb966f01c82f439fecd3c0a3599ee0",
+                                        "lastTimestamp": "2024-11-23T18:40:05Z"
                                     },
                                     "processed": {
-                                        "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
-                                        "lastTimestamp": "2024-11-22T16:22:54Z"
+                                        "checkSum": "fcdb966f01c82f439fecd3c0a3599ee0",
+                                        "lastTimestamp": "2024-11-23T18:40:42Z"
                                     },
                                     "synced": "True"
                                 },
+                                "desired": 0,
                                 "error": "",
+                                "instances": 0,
                                 "kubernetesVersion": "1.27",
+                                "lastMachineFailures": [],
+                                "max": 0,
+                                "min": 0,
                                 "nodes": 0,
                                 "ready": 0,
                                 "upToDate": 0
@@ -957,7 +1049,31 @@ class TestGroupValidationWebhook(unittest.TestCase):
 
         out = hook.testrun(main, [ctx])
 
-        _assert_conversion(self, out, {}, None)
+        def assert_api_version_and_docker_moved_from_cri_and_another_not_changed(t: unittest.TestCase, objects: typing.List[dict]):
+            t.assertEqual(len(objects), 1)
+            o = objects[0]
+
+            assert_common_resource_fields(t, o, "deckhouse.io/v1alpha1", "p-90")
+
+            obj = DotMap(o)
+
+            # assert docker moved
+            t.assertEqual(obj.spec.docker,  DotMap({
+                "manage": False,
+                "maxConcurrentDownloads": 4
+            }))
+            t.assertNotIn("Docker", obj.spec.cri)
+
+            t.assertIn("cri", obj.spec)
+            t.assertEqual(obj.spec.cri.type, "Docker")
+
+            # assert some fields cannot changed
+            t.assertEqual(obj.spec.nodeTemplate.labels.aaaaa, "")
+            t.assertEqual(obj.status.kubernetesVersion, "1.27")
+            t.assertEqual(obj.status.ready, 0)
+
+
+        _assert_conversion(self, out, assert_api_version_and_docker_moved_from_cri_and_another_not_changed, None)
 
 
     def test_should_convert_from_alpha2_to_v1(self):
@@ -966,22 +1082,38 @@ class TestGroupValidationWebhook(unittest.TestCase):
             "fromVersion": "deckhouse.io/v1alpha2",
             "review": {
                 "request": {
-                    "uid": "e8a2a24c-2232-480d-a188-2589de68c684",
-                    "desiredAPIVersion": "deckhouse.io/v1alpha1",
+                    "uid": "28ab7564-6f8e-4184-8169-ad3d65dda957",
+                    "desiredAPIVersion": "deckhouse.io/v1",
                     "objects": [
                         {
                             "apiVersion": "deckhouse.io/v1alpha2",
                             "kind": "NodeGroup",
                             "metadata": {
-                                "creationTimestamp": "2023-10-16T10:03:38Z",
-                                "generation": 3,
+                                "creationTimestamp": "2024-11-23T11:09:16Z",
+                                "generation": 1,
                                 "managedFields": [
                                     {
-                                        "apiVersion": "deckhouse.io/v1",
+                                        "apiVersion": "deckhouse.io/v1alpha2",
                                         "fieldsType": "FieldsV1",
                                         "fieldsV1": {
                                             "f:spec": {
                                                 ".": {},
+                                                "f:cloudInstances": {
+                                                    ".": {},
+                                                    "f:classReference": {
+                                                        ".": {},
+                                                        "f:kind": {},
+                                                        "f:name": {}
+                                                    },
+                                                    "f:maxPerZone": {},
+                                                    "f:maxSurgePerZone": {},
+                                                    "f:maxUnavailablePerZone": {},
+                                                    "f:minPerZone": {}
+                                                },
+                                                "f:cri": {
+                                                    ".": {},
+                                                    "f:type": {}
+                                                },
                                                 "f:disruptions": {
                                                     ".": {},
                                                     "f:approvalMode": {}
@@ -991,157 +1123,65 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         },
                                         "manager": "kubectl-create",
                                         "operation": "Update",
-                                        "time": "2023-10-16T10:03:38Z"
-                                    },
-                                    {
-                                        "apiVersion": "deckhouse.io/v1",
-                                        "fieldsType": "FieldsV1",
-                                        "fieldsV1": {
-                                            "f:spec": {
-                                                "f:nodeTemplate": {
-                                                    ".": {},
-                                                    "f:labels": {
-                                                        ".": {},
-                                                        "f:aaaa": {}
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "manager": "kubectl-edit",
-                                        "operation": "Update",
-                                        "time": "2023-10-16T10:06:01Z"
-                                    },
-                                    {
-                                        "apiVersion": "deckhouse.io/v1",
-                                        "fieldsType": "FieldsV1",
-                                        "fieldsV1": {
-                                            "f:spec": {
-                                                "f:kubelet": {
-                                                    "f:resourceReservation": {
-                                                        "f:mode": {}
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "manager": "deckhouse-controller",
-                                        "operation": "Update",
-                                        "time": "2024-01-30T07:08:03Z"
-                                    },
-                                    {
-                                        "apiVersion": "deckhouse.io/v1",
-                                        "fieldsType": "FieldsV1",
-                                        "fieldsV1": {
-                                            "f:status": {
-                                                ".": {},
-                                                "f:conditionSummary": {
-                                                    ".": {},
-                                                    "f:ready": {},
-                                                    "f:statusMessage": {}
-                                                },
-                                                "f:conditions": {},
-                                                "f:deckhouse": {
-                                                    ".": {},
-                                                    "f:observed": {
-                                                        ".": {},
-                                                        "f:checkSum": {},
-                                                        "f:lastTimestamp": {}
-                                                    },
-                                                    "f:processed": {
-                                                        ".": {},
-                                                        "f:checkSum": {},
-                                                        "f:lastTimestamp": {}
-                                                    },
-                                                    "f:synced": {}
-                                                },
-                                                "f:error": {},
-                                                "f:kubernetesVersion": {},
-                                                "f:nodes": {},
-                                                "f:ready": {},
-                                                "f:upToDate": {}
-                                            }
-                                        },
-                                        "manager": "deckhouse-controller",
-                                        "operation": "Update",
-                                        "subresource": "status",
-                                        "time": "2024-11-22T16:40:04Z"
+                                        "time": "2024-11-23T11:09:16Z"
                                     }
                                 ],
-                                "name": "worker-static",
-                                "uid": "5a5e3820-5fdd-4fea-a8cf-032586ae0be5"
+                                "name": "worker-small-a2",
+                                "uid": "5389bed8-daeb-4d60-a1e4-48c4f8903f8b"
                             },
                             "spec": {
+                                "cloudInstances": {
+                                    "classReference": {
+                                        "kind": "OpenStackInstanceClass",
+                                        "name": "worker-small"
+                                    },
+                                    "maxPerZone": 0,
+                                    "maxSurgePerZone": 0,
+                                    "maxUnavailablePerZone": 0,
+                                    "minPerZone": 0
+                                },
+                                "cri": {
+                                    "type": "Containerd"
+                                },
                                 "disruptions": {
                                     "approvalMode": "Automatic"
                                 },
-                                "kubelet": {
-                                    "containerLogMaxFiles": 4,
-                                    "containerLogMaxSize": "50Mi",
-                                    "resourceReservation": {
-                                        "mode": "Off"
-                                    }
-                                },
-                                "nodeTemplate": {
-                                    "labels": {
-                                        "aaaa": "bbbb"
-                                    }
-                                },
-                                "nodeType": "Hybrid"
-                            },
-                            "status": {
-                                "conditionSummary": {
-                                    "ready": "True",
-                                    "statusMessage": ""
-                                },
-                                "conditions": [
-                                    {
-                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
-                                        "status": "True",
-                                        "type": "Ready"
-                                    },
-                                    {
-                                        "lastTransitionTime": "2023-10-26T12:24:02Z",
-                                        "status": "False",
-                                        "type": "Updating"
-                                    },
-                                    {
-                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
-                                        "status": "False",
-                                        "type": "WaitingForDisruptiveApproval"
-                                    },
-                                    {
-                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
-                                        "status": "False",
-                                        "type": "Error"
-                                    }
-                                ],
-                                "deckhouse": {
-                                    "observed": {
-                                        "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
-                                        "lastTimestamp": "2024-11-22T16:40:04Z"
-                                    },
-                                    "processed": {
-                                        "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
-                                        "lastTimestamp": "2024-11-22T16:22:54Z"
-                                    },
-                                    "synced": "True"
-                                },
-                                "error": "",
-                                "kubernetesVersion": "1.27",
-                                "nodes": 0,
-                                "ready": 0,
-                                "upToDate": 0
+                                "nodeType": "Cloud"
                             }
                         }
                     ]
                 }
             },
+            "snapshots": {
+                "cluster_config": [
+                    {
+                        "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
+                    }
+                ]
+            },
             "toVersion": "deckhouse.io/v1",
             "type": "Conversion"
         }
 
+
         out = hook.testrun(main, [ctx])
 
-        _assert_conversion(self, out, {}, None)
+        def assert_api_version_and_change_node_type_and_another_not_changed(t: unittest.TestCase, objects: typing.List[dict]):
+            t.assertEqual(len(objects), 1)
+            o = objects[0]
+
+            assert_common_resource_fields(t, o, "deckhouse.io/v1", "worker-small-a2")
+
+            obj = DotMap(o)
+
+            # assert docker moved
+            t.assertEqual(obj.spec.nodeType, "CloudEphemeral")
+
+            # assert some fields cannot changed
+            t.assertEqual(obj.spec.cri.type, "Containerd")
+            t.assertEqual(obj.spec.cloudInstances.classReference.name, "worker-small")
+
+        _assert_conversion(self, out, assert_api_version_and_change_node_type_and_another_not_changed, None)
 
 
     def test_should_convert_from_alpha1_to_alpha2(self):
@@ -1273,6 +1313,10 @@ class TestGroupValidationWebhook(unittest.TestCase):
                                         }
                                     ]
                                 },
+                                "docker": {
+                                    "manage": False,
+                                    "maxConcurrentDownloads": 4
+                                },
                                 "nodeType": "Hybrid"
                             },
                             "status": {
@@ -1296,6 +1340,29 @@ class TestGroupValidationWebhook(unittest.TestCase):
 
         out = hook.testrun(main, [ctx])
 
-        _assert_conversion(self, out, {}, None)
+        def assert_api_version_and_docker_move_to_cri_and_remove_k8s_ver_and_another_not_changed(t: unittest.TestCase, objects: typing.List[dict]):
+            t.assertEqual(len(objects), 1)
+            o = objects[0]
+
+            assert_common_resource_fields(t, o, "deckhouse.io/v1alpha2", "worker-static")
+
+            obj = DotMap(o)
+
+            # assert docker moved
+            t.assertIn("cri", obj.spec)
+            t.assertIn("docker", obj.spec.cri)
+            t.assertEqual(obj.spec.cri.docker, DotMap({
+                "manage": False,
+                "maxConcurrentDownloads": 4
+            }))
+
+            # assert some fields cannot changed
+            t.assertEqual(obj.spec.kubelet, DotMap({
+                "containerLogMaxFiles": 4,
+                "containerLogMaxSize": "50Mi"
+            }))
+            t.assertEqual(obj.status.ready, 1)
+
+        _assert_conversion(self, out, assert_api_version_and_docker_move_to_cri_and_remove_k8s_ver_and_another_not_changed, None)
 
 
