@@ -13,8 +13,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import typing
 
+import typing
+import base64
 
 from dotmap import DotMap
 from deckhouse import hook
@@ -146,9 +147,14 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
         obj.apiVersion = "deckhouse.io/v1"
 
         try:
-            provider_config = yaml.safe_load(self._snapshots["cluster_config"][0]["filterResult"])
+            provider_config_yaml = base64.standard_b64decode(self._snapshots["cluster_config"][0]["filterResult"])
         except Exception as e:
-            return f"Cannot parse provider cluster configuration: {e}", DotMap({})
+            return f"Cannot decode provider cluster configuration: {e}", {}
+
+        try:
+            provider_config = yaml.safe_load(provider_config_yaml)
+        except Exception as e:
+            return f"Cannot parse provider cluster configuration: {e}", {}
 
         ng_name = obj.metadata.name
         node_type = obj.spec.nodeType

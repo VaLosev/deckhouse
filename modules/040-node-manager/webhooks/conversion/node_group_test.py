@@ -219,6 +219,14 @@ class TestUnitAlpha2ToAlpha1Method(unittest.TestCase):
 
 
 class TestUnitAlpha2ToV1Method(unittest.TestCase):
+    __snapshots = {
+        "cluster_config": [
+            {
+                "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
+            }
+        ]
+    }
+
     def test_not_alpha2_should_return_same_object(self):
         obj = {
             "apiVersion": "deckhouse.io/v1alpha1",
@@ -233,7 +241,7 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
             }
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests(None).alpha2_to_v1(obj)
+        err, res_obj = test_dispatcher_for_unit_tests(TestUnitAlpha2ToV1Method.__snapshots).alpha2_to_v1(obj)
 
         self.assertIsNone(err)
         self.assertEqual(obj, res_obj)
@@ -260,13 +268,7 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
             },
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests({
-            "cluster_config": [
-                {
-                    "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
-                }
-            ]
-        }).alpha2_to_v1(obj)
+        err, res_obj = test_dispatcher_for_unit_tests(TestUnitAlpha2ToV1Method.__snapshots).alpha2_to_v1(obj)
 
         self.assertIsNone(err)
         self.assertEqual(res_obj, {
@@ -312,13 +314,7 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
             },
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests({
-            "cluster_config": [
-                {
-                    "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
-                }
-            ]
-        }).alpha2_to_v1(obj)
+        err, res_obj = test_dispatcher_for_unit_tests(TestUnitAlpha2ToV1Method.__snapshots).alpha2_to_v1(obj)
 
         self.assertIsNone(err)
         self.assertEqual(res_obj, {
@@ -364,13 +360,7 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
             },
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests({
-            "cluster_config": [
-                {
-                    "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
-                }
-            ]
-        }).alpha2_to_v1(obj)
+        err, res_obj = test_dispatcher_for_unit_tests(TestUnitAlpha2ToV1Method.__snapshots).alpha2_to_v1(obj)
 
         self.assertIsNone(err)
         self.assertEqual(res_obj, {
@@ -393,6 +383,53 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
             },
 
         })
+
+
+    def test_change_node_type_from_hybrid_to_cloud_static_for_ng_not_in_provider_cluster_config(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "another",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Hybrid"
+            },
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(TestUnitAlpha2ToV1Method.__snapshots).alpha2_to_v1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "another",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudStatic"
+            },
+
+        })
+
 
 
 class TestGroupValidationWebhook(unittest.TestCase):
