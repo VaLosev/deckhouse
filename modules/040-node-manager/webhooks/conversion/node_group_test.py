@@ -431,6 +431,165 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
         })
 
 
+class TestUnitV1ToAlpha2Method(unittest.TestCase):
+    def test_not_alpha2_should_return_same_object(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+            }
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).v1_to_alpha2(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(obj, res_obj)
+
+
+    def test_change_node_type_from_cloud_ephemeral_to_cloud(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudEphemeral"
+            },
+
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).v1_to_alpha2(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Cloud"
+            },
+        })
+
+
+    def test_change_node_type_from_cloud_permanent_to_hybrid(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "master",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudPermanent"
+            },
+
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).v1_to_alpha2(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "master",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Hybrid"
+            },
+        })
+
+
+    def test_change_node_type_from_cloud_static_to_hybrid(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "another",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudStatic"
+            },
+
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).v1_to_alpha2(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "another",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Hybrid"
+            },
+        })
+
+
 
 class TestGroupValidationWebhook(unittest.TestCase):
     def test_should_convert_from_v1_to_alpha2(self):

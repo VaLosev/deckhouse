@@ -157,10 +157,10 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
             return f"Cannot parse provider cluster configuration: {e}", {}
 
         ng_name = obj.metadata.name
-        node_type = obj.spec.nodeType
-        if node_type == "Cloud":
-            node_type = "CloudEphemeral"
-        elif node_type == "Hybrid":
+        ng_type = obj.spec.nodeType
+        if ng_type == "Cloud":
+            ng_type = "CloudEphemeral"
+        elif ng_type == "Hybrid":
             found_in_permanent = False
             if ng_name == "master":
                 found_in_permanent = True
@@ -170,15 +170,30 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
                         if ng["name"] == ng_name:
                             found_in_permanent = True
                             break
-            node_type = "CloudPermanent" if found_in_permanent else "CloudStatic"
-        obj.spec.nodeType = node_type
+            ng_type = "CloudPermanent" if found_in_permanent else "CloudStatic"
+
+        obj.spec.nodeType = ng_type
 
         return None, obj.toDict()
 
 
-    def v1_to_alpha2(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
-        return None, obj
+    def v1_to_alpha2(self, o: dict) -> typing.Tuple[str | None, dict]:
+        obj = DotMap(o)
 
+        if obj.apiVersion != "deckhouse.io/v1":
+            return None, o
+
+        obj.apiVersion = "deckhouse.io/v1alpha2"
+
+        ng_type = obj.spec.nodeType
+        if ng_type == "CloudEphemeral":
+            ng_type = "Cloud"
+        elif ng_type == "CloudPermanent" or ng_type == "CloudStatic":
+            ng_type = "Hybrid"
+
+        obj.spec.nodeType = ng_type
+
+        return None, obj.toDict()
 
 
 def main(ctx: hook.Context):
