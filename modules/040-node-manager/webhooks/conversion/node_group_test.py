@@ -1366,3 +1366,525 @@ class TestGroupValidationWebhook(unittest.TestCase):
         _assert_conversion(self, out, assert_api_version_and_docker_move_to_cri_and_remove_k8s_ver_and_another_not_changed, None)
 
 
+    def test_should_convert_from_v1_alpha2_multiple_objects(self):
+        ctx = {
+            "binding": "v1_to_alpha2",
+            "fromVersion": "deckhouse.io/v1",
+            "review": {
+                "request": {
+                    "uid": "1f756338-32cd-49b4-81d7-292a770aa1d8",
+                    "desiredAPIVersion": "deckhouse.io/v1alpha1",
+                    "objects": [
+                        {
+                            "apiVersion": "deckhouse.io/v1",
+                            "kind": "NodeGroup",
+                            "metadata": {
+                                "creationTimestamp": "2021-03-18T13:46:17Z",
+                                "generation": 6,
+                                "name": "master",
+                                "uid": "7f66a236-6931-478d-b635-69ab8862fa75"
+                            },
+                            "spec": {
+                                "disruptions": {
+                                    "approvalMode": "Manual"
+                                },
+                                "kubelet": {
+                                    "containerLogMaxFiles": 4,
+                                    "containerLogMaxSize": "50Mi",
+                                    "resourceReservation": {
+                                        "mode": "Off"
+                                    }
+                                },
+                                "nodeTemplate": {
+                                    "labels": {
+                                        "node-role.kubernetes.io/control-plane": "",
+                                        "node-role.kubernetes.io/master": ""
+                                    },
+                                    "taints": [
+                                        {
+                                            "effect": "NoSchedule",
+                                            "key": "node-role.kubernetes.io/control-plane"
+                                        }
+                                    ]
+                                },
+                                "nodeType": "CloudPermanent"
+                            },
+                            "status": {
+                                "conditionSummary": {
+                                    "ready": "True",
+                                    "statusMessage": ""
+                                },
+                                "conditions": [
+                                    {
+                                        "lastTransitionTime": "2023-05-10T07:47:32Z",
+                                        "status": "True",
+                                        "type": "Ready"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-11-23T16:22:28Z",
+                                        "status": "False",
+                                        "type": "Updating"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2023-09-05T09:08:55Z",
+                                        "status": "False",
+                                        "type": "WaitingForDisruptiveApproval"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2023-03-07T20:51:25Z",
+                                        "status": "False",
+                                        "type": "Error"
+                                    }
+                                ],
+                                "deckhouse": {
+                                    "observed": {
+                                        "checkSum": "42c757d98445e45283f80870e61d4963",
+                                        "lastTimestamp": "2024-11-23T19:50:01Z"
+                                    },
+                                    "processed": {
+                                        "checkSum": "42c757d98445e45283f80870e61d4963",
+                                        "lastTimestamp": "2024-11-23T19:31:29Z"
+                                    },
+                                    "synced": "True"
+                                },
+                                "error": "",
+                                "kubernetesVersion": "1.27",
+                                "nodes": 1,
+                                "ready": 1,
+                                "upToDate": 1
+                            }
+                        },
+                        {
+                            "apiVersion": "deckhouse.io/v1",
+                            "kind": "NodeGroup",
+                            "metadata": {
+                                "creationTimestamp": "2024-03-18T17:55:40Z",
+                                "generation": 2,
+                                "managedFields": [
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:spec": {
+                                                ".": {},
+                                                "f:kubelet": {
+                                                    ".": {},
+                                                    "f:containerLogMaxFiles": {},
+                                                    "f:containerLogMaxSize": {},
+                                                    "f:resourceReservation": {
+                                                        ".": {},
+                                                        "f:mode": {}
+                                                    }
+                                                },
+                                                "f:nodeType": {},
+                                                "f:staticInstances": {}
+                                            }
+                                        },
+                                        "manager": "kubectl-create",
+                                        "operation": "Update",
+                                        "time": "2024-03-18T17:55:40Z"
+                                    },
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:spec": {
+                                                "f:staticInstances": {
+                                                    "f:count": {}
+                                                }
+                                            }
+                                        },
+                                        "manager": "kubectl-edit",
+                                        "operation": "Update",
+                                        "time": "2024-03-18T17:56:07Z"
+                                    },
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:status": {
+                                                ".": {},
+                                                "f:conditionSummary": {
+                                                    ".": {},
+                                                    "f:ready": {},
+                                                    "f:statusMessage": {}
+                                                },
+                                                "f:conditions": {},
+                                                "f:deckhouse": {
+                                                    ".": {},
+                                                    "f:observed": {
+                                                        ".": {},
+                                                        "f:checkSum": {},
+                                                        "f:lastTimestamp": {}
+                                                    },
+                                                    "f:processed": {
+                                                        ".": {},
+                                                        "f:checkSum": {},
+                                                        "f:lastTimestamp": {}
+                                                    },
+                                                    "f:synced": {}
+                                                },
+                                                "f:error": {},
+                                                "f:kubernetesVersion": {},
+                                                "f:nodes": {},
+                                                "f:ready": {},
+                                                "f:upToDate": {}
+                                            }
+                                        },
+                                        "manager": "deckhouse-controller",
+                                        "operation": "Update",
+                                        "subresource": "status",
+                                        "time": "2024-11-23T19:40:03Z"
+                                    }
+                                ],
+                                "name": "worker",
+                                "uid": "16048331-5bf9-46f8-b535-6ad202380c1a"
+                            },
+                            "spec": {
+                                "kubelet": {
+                                    "containerLogMaxFiles": 4,
+                                    "containerLogMaxSize": "50Mi",
+                                    "resourceReservation": {
+                                        "mode": "Auto"
+                                    }
+                                },
+                                "nodeType": "Static",
+                                "staticInstances": {
+                                    "count": 0
+                                }
+                            },
+                            "status": {
+                                "conditionSummary": {
+                                    "ready": "True",
+                                    "statusMessage": ""
+                                },
+                                "conditions": [
+                                    {
+                                        "lastTransitionTime": "2024-03-18T17:56:24Z",
+                                        "status": "True",
+                                        "type": "Ready"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-03-18T17:56:24Z",
+                                        "status": "False",
+                                        "type": "Updating"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-03-18T17:56:24Z",
+                                        "status": "False",
+                                        "type": "WaitingForDisruptiveApproval"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-03-18T17:56:24Z",
+                                        "status": "False",
+                                        "type": "Error"
+                                    }
+                                ],
+                                "deckhouse": {
+                                    "observed": {
+                                        "checkSum": "d084ef81a6796c7a7f386762663cdbfb",
+                                        "lastTimestamp": "2024-11-23T19:40:03Z"
+                                    },
+                                    "processed": {
+                                        "checkSum": "d084ef81a6796c7a7f386762663cdbfb",
+                                        "lastTimestamp": "2024-11-23T19:31:31Z"
+                                    },
+                                    "synced": "True"
+                                },
+                                "error": "",
+                                "kubernetesVersion": "1.27",
+                                "nodes": 0,
+                                "ready": 0,
+                                "upToDate": 0
+                            }
+                        },
+                        {
+                            "apiVersion": "deckhouse.io/v1",
+                            "kind": "NodeGroup",
+                            "metadata": {
+                                "creationTimestamp": "2024-11-23T11:09:16Z",
+                                "generation": 1,
+                                "name": "worker-small-a2",
+                                "uid": "5389bed8-daeb-4d60-a1e4-48c4f8903f8b"
+                            },
+                            "spec": {
+                                "cloudInstances": {
+                                    "classReference": {
+                                        "kind": "OpenStackInstanceClass",
+                                        "name": "worker-small"
+                                    },
+                                    "maxPerZone": 0,
+                                    "maxSurgePerZone": 0,
+                                    "maxUnavailablePerZone": 0,
+                                    "minPerZone": 0
+                                },
+                                "cri": {
+                                    "type": "Containerd"
+                                },
+                                "disruptions": {
+                                    "approvalMode": "Automatic"
+                                },
+                                "kubelet": {
+                                    "containerLogMaxFiles": 4,
+                                    "containerLogMaxSize": "50Mi",
+                                    "resourceReservation": {
+                                        "mode": "Auto"
+                                    }
+                                },
+                                "nodeType": "CloudEphemeral"
+                            },
+                            "status": {
+                                "conditionSummary": {
+                                    "ready": "True",
+                                    "statusMessage": ""
+                                },
+                                "conditions": [
+                                    {
+                                        "lastTransitionTime": "2024-11-23T11:09:18Z",
+                                        "status": "True",
+                                        "type": "Ready"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-11-23T11:09:18Z",
+                                        "status": "False",
+                                        "type": "Updating"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-11-23T11:09:18Z",
+                                        "status": "False",
+                                        "type": "WaitingForDisruptiveApproval"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-11-23T11:09:18Z",
+                                        "status": "False",
+                                        "type": "Error"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2024-11-23T11:09:18Z",
+                                        "status": "False",
+                                        "type": "Scaling"
+                                    }
+                                ],
+                                "deckhouse": {
+                                    "observed": {
+                                        "checkSum": "ffc0444cc2ba5d39bbf8aeff72102178",
+                                        "lastTimestamp": "2024-11-23T19:40:03Z"
+                                    },
+                                    "processed": {
+                                        "checkSum": "ffc0444cc2ba5d39bbf8aeff72102178",
+                                        "lastTimestamp": "2024-11-23T19:31:31Z"
+                                    },
+                                    "synced": "True"
+                                },
+                                "desired": 0,
+                                "error": "",
+                                "instances": 0,
+                                "kubernetesVersion": "1.27",
+                                "lastMachineFailures": [],
+                                "max": 0,
+                                "min": 0,
+                                "nodes": 0,
+                                "ready": 0,
+                                "upToDate": 0
+                            }
+                        },
+                        {
+                            "apiVersion": "deckhouse.io/v1",
+                            "kind": "NodeGroup",
+                            "metadata": {
+                                "creationTimestamp": "2023-10-16T10:03:38Z",
+                                "generation": 3,
+                                "managedFields": [
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:spec": {
+                                                ".": {},
+                                                "f:disruptions": {
+                                                    ".": {},
+                                                    "f:approvalMode": {}
+                                                },
+                                                "f:nodeType": {}
+                                            }
+                                        },
+                                        "manager": "kubectl-create",
+                                        "operation": "Update",
+                                        "time": "2023-10-16T10:03:38Z"
+                                    },
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:spec": {
+                                                "f:nodeTemplate": {
+                                                    ".": {},
+                                                    "f:labels": {
+                                                        ".": {},
+                                                        "f:aaaa": {}
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "manager": "kubectl-edit",
+                                        "operation": "Update",
+                                        "time": "2023-10-16T10:06:01Z"
+                                    },
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:spec": {
+                                                "f:kubelet": {
+                                                    "f:resourceReservation": {
+                                                        "f:mode": {}
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "manager": "deckhouse-controller",
+                                        "operation": "Update",
+                                        "time": "2024-01-30T07:08:03Z"
+                                    },
+                                    {
+                                        "apiVersion": "deckhouse.io/v1",
+                                        "fieldsType": "FieldsV1",
+                                        "fieldsV1": {
+                                            "f:status": {
+                                                ".": {},
+                                                "f:conditionSummary": {
+                                                    ".": {},
+                                                    "f:ready": {},
+                                                    "f:statusMessage": {}
+                                                },
+                                                "f:conditions": {},
+                                                "f:deckhouse": {
+                                                    ".": {},
+                                                    "f:observed": {
+                                                        ".": {},
+                                                        "f:checkSum": {},
+                                                        "f:lastTimestamp": {}
+                                                    },
+                                                    "f:processed": {
+                                                        ".": {},
+                                                        "f:checkSum": {},
+                                                        "f:lastTimestamp": {}
+                                                    },
+                                                    "f:synced": {}
+                                                },
+                                                "f:error": {},
+                                                "f:kubernetesVersion": {},
+                                                "f:nodes": {},
+                                                "f:ready": {},
+                                                "f:upToDate": {}
+                                            }
+                                        },
+                                        "manager": "deckhouse-controller",
+                                        "operation": "Update",
+                                        "subresource": "status",
+                                        "time": "2024-11-23T19:40:04Z"
+                                    }
+                                ],
+                                "name": "worker-static",
+                                "uid": "5a5e3820-5fdd-4fea-a8cf-032586ae0be5"
+                            },
+                            "spec": {
+                                "disruptions": {
+                                    "approvalMode": "Automatic"
+                                },
+                                "kubelet": {
+                                    "containerLogMaxFiles": 4,
+                                    "containerLogMaxSize": "50Mi",
+                                    "resourceReservation": {
+                                        "mode": "Off"
+                                    }
+                                },
+                                "nodeTemplate": {
+                                    "labels": {
+                                        "aaaa": "bbbb"
+                                    }
+                                },
+                                "nodeType": "CloudStatic"
+                            },
+                            "status": {
+                                "conditionSummary": {
+                                    "ready": "True",
+                                    "statusMessage": ""
+                                },
+                                "conditions": [
+                                    {
+                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
+                                        "status": "True",
+                                        "type": "Ready"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2023-10-26T12:24:02Z",
+                                        "status": "False",
+                                        "type": "Updating"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
+                                        "status": "False",
+                                        "type": "WaitingForDisruptiveApproval"
+                                    },
+                                    {
+                                        "lastTransitionTime": "2023-10-16T10:03:39Z",
+                                        "status": "False",
+                                        "type": "Error"
+                                    }
+                                ],
+                                "deckhouse": {
+                                    "observed": {
+                                        "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
+                                        "lastTimestamp": "2024-11-23T19:40:04Z"
+                                    },
+                                    "processed": {
+                                        "checkSum": "8cfb8c1cda6ce98f0b50e52302d5a871",
+                                        "lastTimestamp": "2024-11-23T19:31:31Z"
+                                    },
+                                    "synced": "True"
+                                },
+                                "error": "",
+                                "kubernetesVersion": "1.27",
+                                "nodes": 0,
+                                "ready": 0,
+                                "upToDate": 0
+                            }
+                        }
+                    ]
+                }
+            },
+            "toVersion": "deckhouse.io/v1alpha2",
+            "type": "Conversion"
+        }
+
+
+
+        out = hook.testrun(main, [ctx])
+
+        def assert_api_version_and_change_node_type(t: unittest.TestCase, objects: typing.List[dict]):
+            t.assertEqual(len(objects), 4)
+
+            assert_common_resource_fields(t, objects[0], "deckhouse.io/v1alpha2", "master")
+            # was CloudPermanent
+            t.assertEqual(DotMap(objects[0]).spec.nodeType, "Hybrid")
+
+            assert_common_resource_fields(t, objects[1], "deckhouse.io/v1alpha2", "worker")
+            # not changed
+            t.assertEqual(DotMap(objects[1]).spec.nodeType, "Static")
+
+            assert_common_resource_fields(t, objects[2], "deckhouse.io/v1alpha2", "worker-small-a2")
+            # was CloudEphemeral
+            t.assertEqual(DotMap(objects[2]).spec.nodeType, "Cloud")
+
+            assert_common_resource_fields(t, objects[3], "deckhouse.io/v1alpha2", "worker-static")
+            # was CloudStatic
+            t.assertEqual(DotMap(objects[3]).spec.nodeType, "Hybrid")
+
+
+        _assert_conversion(self, out, assert_api_version_and_change_node_type, None)
+
+
+
+if __name__ == '__main__':
+    unittest.main()
