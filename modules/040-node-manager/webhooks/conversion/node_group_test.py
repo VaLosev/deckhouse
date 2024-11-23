@@ -39,7 +39,7 @@ def _assert_conversion(t: unittest.TestCase, o: hook.Output, res: dict | typing.
     t.assertEqual(d[0]["convertedObjects"], expected)
 
 
-def test_dispatcher_for_unit_tests() -> NodeGroupConversionDispatcher:
+def test_dispatcher_for_unit_tests(snapshots: dict | None) -> NodeGroupConversionDispatcher:
     output = hook.Output(
         hook.MetricsCollector(),
         hook.KubeOperationCollector(),
@@ -47,7 +47,12 @@ def test_dispatcher_for_unit_tests() -> NodeGroupConversionDispatcher:
         hook.ConversionsCollector(),
         hook.ValidationsCollector(),
     )
-    return NodeGroupConversionDispatcher(hook.Context({}, {}, {}, output))
+
+    bctx = {}
+    if snapshots is not None:
+        bctx = {"snapshots": snapshots}
+
+    return NodeGroupConversionDispatcher(hook.Context(bctx, {}, {}, output))
 
 
 
@@ -66,10 +71,10 @@ class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
             }
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests().alpha1_to_alpha2(DotMap(obj))
+        err, res_obj = test_dispatcher_for_unit_tests(None).alpha1_to_alpha2(DotMap(obj))
 
         self.assertIsNone(err)
-        self.assertEqual(obj, res_obj.toDict())
+        self.assertEqual(obj, res_obj)
 
 
     def test_should_remove_static_and_spec_kubernetes_version(self):
@@ -90,10 +95,10 @@ class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
             }
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests().alpha1_to_alpha2(DotMap(obj))
+        err, res_obj = test_dispatcher_for_unit_tests(None).alpha1_to_alpha2(obj)
 
         self.assertIsNone(err)
-        self.assertEqual(res_obj.toDict(), {
+        self.assertEqual(res_obj, {
             "apiVersion": "deckhouse.io/v1alpha2",
             "kind": "NodeGroup",
             "metadata": {
@@ -126,10 +131,10 @@ class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
 
         }
 
-        err, res_obj = test_dispatcher_for_unit_tests().alpha1_to_alpha2(DotMap(obj))
+        err, res_obj = test_dispatcher_for_unit_tests(None).alpha1_to_alpha2(obj)
 
         self.assertIsNone(err)
-        self.assertEqual(res_obj.toDict(), {
+        self.assertEqual(res_obj, {
             "apiVersion": "deckhouse.io/v1alpha2",
             "kind": "NodeGroup",
             "metadata": {
@@ -146,6 +151,247 @@ class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
                     }
                 }
             },
+        })
+
+
+class TestUnitAlpha2ToAlpha1Method(unittest.TestCase):
+    def test_not_alpha2_should_return_same_object(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+            }
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).alpha2_to_alpha1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(obj, res_obj)
+
+
+    def test_should_move_spec_cri_docker_to_spec_docker(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                }
+            },
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).alpha2_to_alpha1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1alpha1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {},
+                "docker": {
+                    "manage": False,
+                    "maxConcurrentDownloads": 4
+                }
+            },
+
+        })
+
+
+class TestUnitAlpha2ToV1Method(unittest.TestCase):
+    def test_not_alpha2_should_return_same_object(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+            }
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests(None).alpha2_to_v1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(obj, res_obj)
+
+
+    def test_change_node_type_from_cloud_to_cloud_ephemeral(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Cloud"
+            },
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests({
+            "cluster_config": [
+                {
+                    "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
+                }
+            ]
+        }).alpha2_to_v1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "worker-static",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudEphemeral"
+            },
+
+        })
+
+
+    def test_change_node_type_from_hybrid_to_cloud_permanent_for_master_ng(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "master",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Hybrid"
+            },
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests({
+            "cluster_config": [
+                {
+                    "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
+                }
+            ]
+        }).alpha2_to_v1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "master",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudPermanent"
+            },
+
+        })
+
+
+    def test_change_node_type_from_hybrid_to_cloud_permanent_for_ng_in_provider_cluster_config(self):
+        obj = {
+            "apiVersion": "deckhouse.io/v1alpha2",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "front-nm",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "Hybrid"
+            },
+        }
+
+        err, res_obj = test_dispatcher_for_unit_tests({
+            "cluster_config": [
+                {
+                    "filterResult": "YXBpVmVyc2lvbjogZGVja2hvdXNlLmlvL3YxYWxwaGExCmtpbmQ6IE9wZW5TdGFja0NsdXN0ZXJDb25maWd1cmF0aW9uCmxheW91dDogU3RhbmRhcmQKbWFzdGVyTm9kZUdyb3VwOgogIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgLSB0c3Qtc2VjLWdyb3VwCiAgICBldGNkRGlza1NpemVHYjogMTAKICAgIGZsYXZvck5hbWU6IG0xLmxhcmdlLTUwZwogICAgaW1hZ2VOYW1lOiB1YnVudHUtMTgtMDQtY2xvdWQtYW1kNjQKICByZXBsaWNhczogMQogIHZvbHVtZVR5cGVNYXA6CiAgICBub3ZhOiBjZXBoLXNzZApub2RlR3JvdXBzOgotIGluc3RhbmNlQ2xhc3M6CiAgICBhZGRpdGlvbmFsU2VjdXJpdHlHcm91cHM6CiAgICAtIHNhbmRib3gKICAgIC0gc2FuZGJveC1mcm9udGVuZAogICAgY29uZmlnRHJpdmU6IGZhbHNlCiAgICBmbGF2b3JOYW1lOiBtMS54c21hbGwKICAgIGltYWdlTmFtZTogdWJ1bnR1LTE4LTA0LWNsb3VkLWFtZDY0CiAgICBtYWluTmV0d29yazogc2FuZGJveAogICAgcm9vdERpc2tTaXplOiAxNQogIG5hbWU6IGZyb250LW5tCiAgbm9kZVRlbXBsYXRlOgogICAgbGFiZWxzOgogICAgICBhYWE6IGFhYWEKICAgICAgY2NjOiBjY2NjCiAgcmVwbGljYXM6IDIKICB2b2x1bWVUeXBlTWFwOgogICAgbm92YTogY2VwaC1zc2QKcHJvdmlkZXI6CiAgYXV0aFVSTDogaHR0cHM6Ly9jbG91ZC5leGFtcGxlLmNvbS92My8KICBkb21haW5OYW1lOiBEZWZhdWx0CiAgcGFzc3dvcmQ6IHBhc3N3b3JkCiAgcmVnaW9uOiByZWcKICB0ZW5hbnROYW1lOiB1c2VyCiAgdXNlcm5hbWU6IHVzZXIKc3NoUHVibGljS2V5OiBzc2gtcnNhIEFBQQpzdGFuZGFyZDoKICBleHRlcm5hbE5ldHdvcmtOYW1lOiBwdWJsaWMKICBpbnRlcm5hbE5ldHdvcmtDSURSOiAxOTIuMTY4LjE5OC4wLzI0CiAgaW50ZXJuYWxOZXR3b3JrRE5TU2VydmVyczoKICAtIDguOC44LjgKICAtIDEuMS4xLjEKICAtIDguOC40LjQKICBpbnRlcm5hbE5ldHdvcmtTZWN1cml0eTogdHJ1ZQp0YWdzOgogIGE6IGIK"
+                }
+            ]
+        }).alpha2_to_v1(obj)
+
+        self.assertIsNone(err)
+        self.assertEqual(res_obj, {
+            "apiVersion": "deckhouse.io/v1",
+            "kind": "NodeGroup",
+            "metadata": {
+                "name": "front-nm",
+            },
+            "spec": {
+                "disruptions": {
+                    "approvalMode": "Automatic"
+                },
+                "cri": {
+                    "docker": {
+                        "manage": False,
+                        "maxConcurrentDownloads": 4
+                    }
+                },
+                "nodeType": "CloudPermanent"
+            },
+
         })
 
 

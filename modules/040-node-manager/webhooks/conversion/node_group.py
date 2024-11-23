@@ -18,6 +18,7 @@ import typing
 
 from dotmap import DotMap
 from deckhouse import hook
+import yaml
 
 
 config = """
@@ -63,13 +64,13 @@ kubernetesCustomResourceConversion:
 
 class ConversionDispatcher:
     def __init__(self, ctx: hook.Context):
-        self._binding_context = DotMap(ctx.binding_context)
-        self._snapshots = DotMap(ctx.snapshots)
+        self._binding_context = ctx.binding_context
+        self._snapshots = ctx.snapshots
         self.__ctx = ctx
 
 
     def run(self):
-        binding_name = self._binding_context.binding
+        binding_name = self._binding_context["binding"]
 
         try:
             action = getattr(self, binding_name)
@@ -79,17 +80,17 @@ class ConversionDispatcher:
 
         try:
             errors = []
-            for obj in self._binding_context.review.request.objects:
+            for obj in self._binding_context["review"]["request"]["objects"]:
                 error_msg, res_obj = action(obj)
                 if error_msg is not None:
                     errors.append(error_msg)
                     continue
-                self.__ctx.output.conversions.collect(obj.toDict())
+                self.__ctx.output.conversions.collect(res_obj)
             if errors:
                 err_msg = ";".join(errors)
                 self.__ctx.output.conversions.error(err_msg)
         except Exception as e:
-            self.__ctx.output.conversions.error("Internal error. Catch exception: {}".format(str(e)))
+            self.__ctx.output.conversions.error("Internal error: {}".format(str(e)))
             return
 
 
@@ -98,9 +99,11 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
         super().__init__(ctx)
 
 
-    def alpha1_to_alpha2(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
+    def alpha1_to_alpha2(self, o: dict) -> typing.Tuple[str | None, dict]:
+        obj = DotMap(o)
+
         if obj.apiVersion != "deckhouse.io/v1alpha1":
-            return None, obj
+            return None, o
 
         obj.apiVersion = "deckhouse.io/v1alpha2"
         if "docker" in obj.spec:
@@ -115,19 +118,61 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
         if "static" in obj:
             del obj.static
 
-        return None, obj
+        return None, obj.toDict()
+
+
+    def alpha2_to_alpha1(self, o: dict) -> typing.Tuple[str | None, dict]:
+        obj = DotMap(o)
+
+        if obj.apiVersion != "deckhouse.io/v1alpha2":
+            return None, o
+
+        obj.apiVersion = "deckhouse.io/v1alpha1"
+
+        if "cri" in obj.spec:
+            if "docker" in obj.spec.cri:
+                obj.spec.docker = obj.spec.cri.docker
+                del obj.spec.cri.docker
+
+        return None, obj.toDict()
+
+
+    def alpha2_to_v1(self, o: dict) -> typing.Tuple[str | None, dict]:
+        obj = DotMap(o)
+
+        if obj.apiVersion != "deckhouse.io/v1alpha2":
+            return None, o
+
+        obj.apiVersion = "deckhouse.io/v1"
+
+        try:
+            provider_config = yaml.safe_load(self._snapshots["cluster_config"][0]["filterResult"])
+        except Exception as e:
+            return f"Cannot parse provider cluster configuration: {e}", DotMap({})
+
+        ng_name = obj.metadata.name
+        node_type = obj.spec.nodeType
+        if node_type == "Cloud":
+            node_type = "CloudEphemeral"
+        elif node_type == "Hybrid":
+            found_in_permanent = False
+            if ng_name == "master":
+                found_in_permanent = True
+            else:
+                if "nodeGroups" in provider_config:
+                    for ng in provider_config["nodeGroups"]:
+                        if ng["name"] == ng_name:
+                            found_in_permanent = True
+                            break
+            node_type = "CloudPermanent" if found_in_permanent else "CloudStatic"
+        obj.spec.nodeType = node_type
+
+        return None, obj.toDict()
 
 
     def v1_to_alpha2(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
         return None, obj
 
-
-    def alpha2_to_alpha1(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
-        return None, obj
-
-
-    def alpha2_to_v1(self, obj: DotMap) -> typing.Tuple[str | None, DotMap]:
-        return None, obj
 
 
 def main(ctx: hook.Context):
