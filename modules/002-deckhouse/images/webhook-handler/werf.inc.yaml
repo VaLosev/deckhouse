@@ -69,11 +69,11 @@ docker:
 artifact: {{ $.ModuleName }}/{{ $.ImageName }}-binaries-artifact
 from: {{ $.Images.BASE_ALT_P11 }}
 git:
-  - add: /{{ .ModulePath }}modules/002-deckhouse/images/webhook-handler/requirements.txt
-    to: /requirements.txt
-    stageDependencies:
-      install:
-        - '**/*'
+- add: /{{ .ModulePath }}modules/002-deckhouse/images/webhook-handler/requirements.txt
+  to: /requirements.txt
+  stageDependencies:
+    beforeInstall:
+      - '**/*'
 shell:
   beforeInstall:
     - apt-get update
