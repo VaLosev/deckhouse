@@ -75,9 +75,9 @@ spec:
         - --secret-type=kubernetes.io/tls:tls.crt
         - --secret-type=Opaque:cert.crt
         - --secret-type=Opaque:tls.crt
-        - --max-cache-duration=300s
-        - --kube-api-rate-limit-qps=5
-        - --kube-api-rate-limit-burst=10
+        - --max-cache-duration=3600s
+        - --kube-api-rate-limit-qps=3
+        - --kube-api-rate-limit-burst=5
         - --listen-address=:9793
         ports:
         - name: metrics
