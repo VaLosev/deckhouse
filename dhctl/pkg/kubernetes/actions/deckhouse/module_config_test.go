@@ -18,16 +18,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flant/addon-operator/sdk"
+	"github.com/deckhouse/deckhouse/dhctl/pkg/config"
+	"github.com/deckhouse/deckhouse/dhctl/pkg/kubernetes/client"
+	"github.com/deckhouse/deckhouse/dhctl/pkg/log"
+	sdkUtils "github.com/deckhouse/module-sdk/pkg/utils"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
-
-	"github.com/deckhouse/deckhouse/dhctl/pkg/config"
-	"github.com/deckhouse/deckhouse/dhctl/pkg/kubernetes/client"
-	"github.com/deckhouse/deckhouse/dhctl/pkg/log"
 )
 
 func createMC(name string, settings map[string]interface{}) *config.ModuleConfig {
@@ -71,7 +70,7 @@ func TestPrepareDeckhouseModuleConfig(t *testing.T) {
 		require.Len(t, res.WithResourcesMCTasks, 0)
 		require.Len(t, res.PostBootstrapMCTasks, 1)
 
-		u, err := sdk.ToUnstructured(mc)
+		u, err := sdkUtils.ToUnstructured(mc)
 		require.NoError(t, err)
 		_, err = fakeClient.Dynamic().Resource(config.ModuleConfigGVR).Create(context.TODO(), u, metav1.CreateOptions{})
 		require.NoError(t, err)
@@ -117,7 +116,7 @@ func TestPrepareDeckhouseModuleConfig(t *testing.T) {
 		require.Contains(t, mc.Spec.Settings, "bundle")
 		require.Equal(t, mc.Spec.Settings["bundle"], "Minimal")
 
-		u, err := sdk.ToUnstructured(mc)
+		u, err := sdkUtils.ToUnstructured(mc)
 		require.NoError(t, err)
 		_, err = fakeClient.Dynamic().Resource(config.ModuleConfigGVR).Create(context.TODO(), u, metav1.CreateOptions{})
 		require.NoError(t, err)
@@ -193,7 +192,7 @@ func TestPrepareGlobalModuleConfig(t *testing.T) {
 			require.Len(t, res.WithResourcesMCTasks, 1)
 			require.Len(t, res.PostBootstrapMCTasks, 0)
 
-			u, err := sdk.ToUnstructured(mc)
+			u, err := sdkUtils.ToUnstructured(mc)
 			require.NoError(t, err)
 			_, err = fakeClient.Dynamic().Resource(config.ModuleConfigGVR).Create(context.TODO(), u, metav1.CreateOptions{})
 			require.NoError(t, err)
@@ -238,7 +237,7 @@ func TestPrepareGlobalModuleConfig(t *testing.T) {
 			require.Len(t, res.WithResourcesMCTasks, 1)
 			require.Len(t, res.PostBootstrapMCTasks, 0)
 
-			u, err := sdk.ToUnstructured(mc)
+			u, err := sdkUtils.ToUnstructured(mc)
 			require.NoError(t, err)
 			_, err = fakeClient.Dynamic().Resource(config.ModuleConfigGVR).Create(context.TODO(), u, metav1.CreateOptions{})
 			require.NoError(t, err)
@@ -277,7 +276,7 @@ func TestPrepareGlobalModuleConfig(t *testing.T) {
 		require.Len(t, res.WithResourcesMCTasks, 0)
 		require.Len(t, res.PostBootstrapMCTasks, 0)
 
-		u, err := sdk.ToUnstructured(mc)
+		u, err := sdkUtils.ToUnstructured(mc)
 		require.NoError(t, err)
 		_, err = fakeClient.Dynamic().Resource(config.ModuleConfigGVR).Create(context.TODO(), u, metav1.CreateOptions{})
 		require.NoError(t, err)

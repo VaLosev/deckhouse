@@ -25,7 +25,7 @@ import (
 
 	"github.com/GehirnInc/crypt"
 	_ "github.com/GehirnInc/crypt/sha512_crypt"
-	"github.com/flant/addon-operator/sdk"
+	sdkUtils "github.com/deckhouse/module-sdk/pkg/utils"
 	"golang.org/x/crypto/ssh"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -144,7 +144,7 @@ func generatePrivateKey(bitSize int) (*rsa.PrivateKey, error) {
 }
 
 func createNodeUser(ctx context.Context, kubeClient client.KubeClient, nodeUser *NodeUser) error {
-	nodeUserResource, err := sdk.ToUnstructured(nodeUser)
+	nodeUserResource, err := sdkUtils.ToUnstructured(nodeUser)
 	if err != nil {
 		return fmt.Errorf("failed to convert NodeUser to unstructured: %w", err)
 	}
@@ -177,7 +177,7 @@ func getNodeUser(ctx context.Context, kubeClient client.KubeClient) (*NodeUser, 
 
 	var nodeUser NodeUser
 
-	err = sdk.FromUnstructured(nodeUserUnstructured, &nodeUser)
+	err = sdkUtils.FromUnstructured(nodeUserUnstructured, &nodeUser)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert unstructured to NodeUser: %w", err)
 	}
