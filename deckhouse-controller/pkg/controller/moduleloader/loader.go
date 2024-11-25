@@ -36,9 +36,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha1"
+	d8utils "github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/module-controllers/utils"
+	moduletypes "github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/moduleloader/types"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/helpers"
 	"github.com/deckhouse/deckhouse/go_lib/configtools/conversion"
 	"github.com/deckhouse/deckhouse/go_lib/d8env"
+	"github.com/deckhouse/deckhouse/go_lib/dependency"
 	"github.com/deckhouse/deckhouse/go_lib/dependency/extenders"
 	"github.com/deckhouse/deckhouse/pkg/log"
 )
@@ -69,18 +72,49 @@ type Loader struct {
 	embeddedPolicy *helpers.ModuleUpdatePolicySpecContainer
 	version        string
 	modulesDirs    []string
-	modules        map[string]*Module
+	modules        map[string]*moduletypes.Module
+
+	dependencyContainer dependency.Container
+
+	downloadedModulesDir string
+	symlinksDir          string
+	clusterUUID          string
 }
 
-func New(client client.Client, version, modulesDir string, embeddedPolicy *helpers.ModuleUpdatePolicySpecContainer, logger *log.Logger) *Loader {
+func New(client client.Client, version, modulesDir string, dc dependency.Container, embeddedPolicy *helpers.ModuleUpdatePolicySpecContainer, logger *log.Logger) *Loader {
 	return &Loader{
-		client:         client,
-		log:            logger,
-		modulesDirs:    utils.SplitToPaths(modulesDir),
-		modules:        make(map[string]*Module),
-		embeddedPolicy: embeddedPolicy,
-		version:        version,
+		client:               client,
+		log:                  logger,
+		modulesDirs:          utils.SplitToPaths(modulesDir),
+		downloadedModulesDir: d8env.GetDownloadedModulesDir(),
+		symlinksDir:          filepath.Join(d8env.GetDownloadedModulesDir(), "modules"),
+		modules:              make(map[string]*moduletypes.Module),
+		embeddedPolicy:       embeddedPolicy,
+		version:              version,
+		dependencyContainer:  dc,
 	}
+}
+
+func (l *Loader) Init(ctx context.Context) error {
+	l.clusterUUID = d8utils.GetClusterUUID(ctx, l.client)
+
+	l.log.Debugf("init module loader")
+
+	if err := l.restoreAbsentModulesFromOverrides(ctx); err != nil {
+		return fmt.Errorf("restore absent modules from overrides: %w", err)
+	}
+
+	if err := l.restoreAbsentModulesFromReleases(ctx); err != nil {
+		return fmt.Errorf("restore absent modules from releases: %w", err)
+	}
+
+	if err := l.deleteModulesWithAbsentRelease(ctx); err != nil {
+		return fmt.Errorf("delete modules with absent releases: %w", err)
+	}
+
+	l.log.Debugf("module loader initialized")
+
+	return nil
 }
 
 // LoadModules implements the module loader interface from addon-operator, used for registering modules in addon-operator
@@ -116,7 +150,7 @@ func (l *Loader) LoadModule(_, modulePath string) (*modules.BasicModule, error) 
 	return module.GetBasicModule(), nil
 }
 
-func (l *Loader) processModuleDefinition(def *Definition) (*Module, error) {
+func (l *Loader) processModuleDefinition(def *moduletypes.Definition) (*moduletypes.Module, error) {
 	if err := validateModuleName(def.Name); err != nil {
 		return nil, fmt.Errorf("invalid name: %w", err)
 	}
@@ -140,7 +174,7 @@ func (l *Loader) processModuleDefinition(def *Definition) (*Module, error) {
 		return nil, fmt.Errorf("read openapi files: %w", err)
 	}
 
-	module, err := newModule(def, moduleStaticValues, configBytes, vb, l.log.Named("module"))
+	module, err := moduletypes.NewModule(def, moduleStaticValues, configBytes, vb, l.log.Named("module"))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +208,7 @@ func validateModuleName(name string) error {
 	return nil
 }
 
-func (l *Loader) GetModuleByName(name string) (*Module, error) {
+func (l *Loader) GetModuleByName(name string) (*moduletypes.Module, error) {
 	module, ok := l.modules[name]
 	if !ok {
 		return nil, ErrModuleIsNotFound
@@ -230,7 +264,7 @@ func (l *Loader) LoadModulesFromFS(ctx context.Context) error {
 	return nil
 }
 
-func (l *Loader) ensureModule(ctx context.Context, def *Definition, embedded bool) error {
+func (l *Loader) ensureModule(ctx context.Context, def *moduletypes.Definition, embedded bool) error {
 	return retry.OnError(retry.DefaultRetry, apierrors.IsServiceUnavailable, func() error {
 		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			module := new(v1alpha1.Module)
@@ -318,13 +352,13 @@ func (l *Loader) ensureModule(ctx context.Context, def *Definition, embedded boo
 }
 
 // parseModulesDir returns modules definitions from the target dir
-func (l *Loader) parseModulesDir(modulesDir string) ([]*Definition, error) {
+func (l *Loader) parseModulesDir(modulesDir string) ([]*moduletypes.Definition, error) {
 	entries, err := readDir(modulesDir)
 	if err != nil {
 		return nil, err
 	}
 
-	definitions := make([]*Definition, 0)
+	definitions := make([]*moduletypes.Definition, 0)
 	for _, entry := range entries {
 		name, absPath, err := l.resolveDirEntry(modulesDir, entry)
 		if err != nil {
@@ -413,7 +447,7 @@ func resolveSymlinkToDir(dirPath string, entry os.DirEntry) (string, error) {
 }
 
 // moduleDefinitionByDir parses module's definition from the target dir
-func (l *Loader) moduleDefinitionByDir(moduleName, moduleDir string) (*Definition, error) {
+func (l *Loader) moduleDefinitionByDir(moduleName, moduleDir string) (*moduletypes.Definition, error) {
 	definition, err := l.moduleDefinitionByFile(moduleDir)
 	if err != nil {
 		return nil, err
@@ -431,8 +465,8 @@ func (l *Loader) moduleDefinitionByDir(moduleName, moduleDir string) (*Definitio
 }
 
 // moduleDefinitionByFile returns Definition instance parsed from the module.yaml file
-func (l *Loader) moduleDefinitionByFile(absPath string) (*Definition, error) {
-	path := filepath.Join(absPath, DefinitionFile)
+func (l *Loader) moduleDefinitionByFile(absPath string) (*moduletypes.Definition, error) {
+	path := filepath.Join(absPath, moduletypes.DefinitionFile)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -445,7 +479,7 @@ func (l *Loader) moduleDefinitionByFile(absPath string) (*Definition, error) {
 		return nil, err
 	}
 
-	def := new(Definition)
+	def := new(moduletypes.Definition)
 	if err = yaml.NewDecoder(f).Decode(def); err != nil {
 		return nil, err
 	}
@@ -459,13 +493,13 @@ func (l *Loader) moduleDefinitionByFile(absPath string) (*Definition, error) {
 }
 
 // moduleDefinitionByDirName returns Definition instance filled with name, order and its absolute path.
-func (l *Loader) moduleDefinitionByDirName(dirName string, absPath string) (*Definition, error) {
+func (l *Loader) moduleDefinitionByDirName(dirName string, absPath string) (*moduletypes.Definition, error) {
 	matchRes := validModuleNameRe.FindStringSubmatch(dirName)
 	if len(matchRes) <= moduleNameIdx {
 		return nil, fmt.Errorf("'%s' is invalid name for module: should match regex '%s'", dirName, validModuleNameRe.String())
 	}
 
-	return &Definition{
+	return &moduletypes.Definition{
 		Name:   matchRes[moduleNameIdx],
 		Path:   absPath,
 		Weight: parseUintOrDefault(matchRes[moduleOrderIdx], 100),

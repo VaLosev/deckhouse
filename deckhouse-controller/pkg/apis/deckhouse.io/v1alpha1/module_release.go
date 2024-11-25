@@ -42,6 +42,11 @@ const (
 
 	ModuleReleaseLabelUpdatePolicy = "modules.deckhouse.io/update-policy"
 
+	ModuleReleaseFinalizerExistOnFs = "modules.deckhouse.io/exist-on-fs"
+
+	ModuleReleaseAnnotationDeckhouseNodeName = "modules.deckhouse.io/deployed-on"
+
+	ModuleReleaseLabelStatus          = "status"
 	ModuleReleaseLabelSource          = "source"
 	ModuleReleaseLabelModule          = "module"
 	ModuleReleaseLabelReleaseChecksum = "release-checksum"

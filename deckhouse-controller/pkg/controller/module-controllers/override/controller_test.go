@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package release
+package override
 
 import (
 	"bytes"
@@ -86,7 +86,7 @@ type PullOverrideControllerTestSuite struct {
 	suite.Suite
 
 	kubeClient client.Client
-	ctr        *modulePullOverrideReconciler
+	ctr        *reconciler
 
 	testDataFileName string
 	testMPOName      string
@@ -616,7 +616,7 @@ func (suite *PullOverrideControllerTestSuite) setupPullOverrideController(yamlDo
 	_ = corev1.AddToScheme(sc)
 	cl := fake.NewClientBuilder().WithScheme(sc).WithObjects(initObjects...).WithStatusSubresource(&v1alpha1.ModuleSource{}, &v1alpha1.ModulePullOverride{}).Build()
 
-	rec := &modulePullOverrideReconciler{
+	rec := &reconciler{
 		client:               cl,
 		downloadedModulesDir: d8env.GetDownloadedModulesDir(),
 		dc:                   dependency.NewDependencyContainer(),

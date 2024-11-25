@@ -17,6 +17,19 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/deckhouse/deckhouse/go_lib/reginjector"
+	"gopkg.in/yaml.v3"
+	"io"
+
+	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
+	addonutils "github.com/flant/addon-operator/pkg/utils"
+	openapierrors "github.com/go-openapi/errors"
+	"github.com/hashicorp/go-multierror"
+
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/gofrs/uuid/v5"
@@ -28,6 +41,7 @@ import (
 
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha1"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha2"
+	moduletypes "github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/moduleloader/types"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/helpers"
 	"github.com/deckhouse/deckhouse/go_lib/dependency/cr"
 	"github.com/deckhouse/deckhouse/pkg/log"
@@ -219,4 +233,144 @@ func GetClusterUUID(ctx context.Context, cli client.Client) string {
 
 	// generate a random UUID if the key is missing
 	return uuid.Must(uuid.NewV4()).String()
+}
+
+func ValidateModule(def moduletypes.Definition, values addonutils.Values, logger *log.Logger) error {
+	if def.Weight < 900 || def.Weight > 999 {
+		return errors.New("external module weight must be between 900 and 999")
+	}
+
+	if def.Path == "" {
+		return errors.New("cannot validate module without path. Path is required to load openapi specs")
+	}
+
+	cb, vb, err := addonutils.ReadOpenAPIFiles(filepath.Join(def.Path, "openapi"))
+	if err != nil {
+		return fmt.Errorf("read open API files: %w", err)
+	}
+
+	dm, err := addonmodules.NewBasicModule(def.Name, def.Path, def.Weight, nil, cb, vb, logger.Named("basic-module"))
+	if err != nil {
+		return fmt.Errorf("new basic module: %w", err)
+	}
+
+	if values != nil {
+		dm.SaveConfigValues(values)
+	}
+
+	err = dm.Validate()
+	// next we will need to record all validation errors except required (602).
+	var result, mErr *multierror.Error
+	if errors.As(err, &mErr) {
+		for _, me := range mErr.Errors {
+			var e *openapierrors.Validation
+			if errors.As(me, &e) {
+				if e.Code() == 602 {
+					continue
+				}
+			}
+			result = multierror.Append(result, me)
+		}
+	}
+	// now result will contain all validation errors, if any, except required.
+
+	if result != nil {
+		return fmt.Errorf("validate module: %w", result)
+	}
+
+	return nil
+}
+
+func EnableModule(downloadedModulesDir, oldSymlinkPath, newSymlinkPath, modulePath string) error {
+	if oldSymlinkPath != "" {
+		if _, err := os.Lstat(oldSymlinkPath); err == nil {
+			if err = os.Remove(oldSymlinkPath); err != nil {
+				return fmt.Errorf("delete the '%s' old symlink: %w", oldSymlinkPath, err)
+			}
+		}
+	}
+
+	if _, err := os.Lstat(newSymlinkPath); err == nil {
+		if err = os.Remove(newSymlinkPath); err != nil {
+			return fmt.Errorf("delete the '%s' new symlink: %w", newSymlinkPath, err)
+		}
+	}
+
+	// make absolute path for versioned module
+	moduleAbsPath := filepath.Join(downloadedModulesDir, strings.TrimPrefix(modulePath, "../"))
+	// check that module exists on a disk
+	if _, err := os.Stat(moduleAbsPath); os.IsNotExist(err) {
+		return fmt.Errorf("the '%s' module absolute path not found", moduleAbsPath)
+	}
+
+	return os.Symlink(modulePath, newSymlinkPath)
+}
+
+func FindExistingModuleSymlink(rootPath, moduleName string) (string, error) {
+	var symlinkPath string
+
+	moduleRegexp := regexp.MustCompile(`^(([0-9]+)-)?(` + moduleName + `)$`)
+	walkDir := func(path string, d os.DirEntry, _ error) error {
+		if !moduleRegexp.MatchString(d.Name()) {
+			return nil
+		}
+
+		symlinkPath = path
+		return filepath.SkipDir
+	}
+
+	err := filepath.WalkDir(rootPath, walkDir)
+
+	return symlinkPath, err
+}
+
+// SyncModuleRegistrySpec compares and updates current registry settings of a deployed module (in the ./openapi/values.yaml file)
+// and the registry settings set in the related module source
+func SyncModuleRegistrySpec(downloadedModulesDir, moduleName, moduleVersion string, moduleSource *v1alpha1.ModuleSource) error {
+	openAPIFile, err := os.Open(filepath.Join(downloadedModulesDir, moduleName, moduleVersion, "openapi/values.yaml"))
+	if err != nil {
+		return fmt.Errorf("open the '%s' module openapi values: %w", moduleName, err)
+	}
+	defer openAPIFile.Close()
+
+	raw, err := io.ReadAll(openAPIFile)
+	if err != nil {
+		return fmt.Errorf("read from the %s module's openapi values: %w", moduleName, err)
+	}
+
+	var openAPISpec moduleOpenAPISpec
+	if err = yaml.Unmarshal(raw, &openAPISpec); err != nil {
+		return fmt.Errorf("couldn't unmarshal the %s module's registry spec: %w", moduleName, err)
+	}
+
+	registrySpec := openAPISpec.Properties.Registry.Properties
+
+	dockercfg := reginjector.DockerCFGForModules(moduleSource.Spec.Registry.Repo, moduleSource.Spec.Registry.DockerCFG)
+
+	if moduleSource.Spec.Registry.CA != registrySpec.CA.Default || dockercfg != registrySpec.DockerCFG.Default || moduleSource.Spec.Registry.Repo != registrySpec.Base.Default || moduleSource.Spec.Registry.Scheme != registrySpec.Scheme.Default {
+		err = reginjector.InjectRegistryToModuleValues(filepath.Join(downloadedModulesDir, moduleName, moduleVersion), moduleSource)
+	}
+
+	return err
+}
+
+type moduleOpenAPISpec struct {
+	Properties struct {
+		Registry struct {
+			Properties struct {
+				Base struct {
+					Default string `yaml:"default"`
+				} `yaml:"base"`
+				DockerCFG struct {
+					Default string `yaml:"default"`
+				} `yaml:"dockercfg"`
+				Scheme struct {
+					Default string `yaml:"default"`
+				} `yaml:"scheme"`
+				CA struct {
+					Default string `yaml:"default"`
+				} `yaml:"ca"`
+			} `yaml:"properties"`
+		} `yaml:"registry,omitempty"`
+	} `yaml:"properties,omitempty"`
 }

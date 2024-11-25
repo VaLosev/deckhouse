@@ -55,8 +55,8 @@ const (
 
 func RegisterController(
 	runtimeManager manager.Manager,
-	handler *confighandler.Handler,
 	mm moduleManager,
+	handler *confighandler.Handler,
 	ms *metricstorage.MetricStorage,
 	loader *moduleloader.Loader,
 	bundle string,
@@ -76,7 +76,7 @@ func RegisterController(
 
 	r.init.Add(1)
 
-	// sync module configs
+	// sync modules and configs
 	if err := runtimeManager.Add(manager.RunnableFunc(r.syncModules)); err != nil {
 		return err
 	}
@@ -139,6 +139,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return r.deleteModuleConfig(ctx, moduleConfig)
 	}
 
+	// handle create/update events
 	return r.handleModuleConfig(ctx, moduleConfig)
 }
 
