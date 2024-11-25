@@ -229,7 +229,8 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 	}
 
 	if moduleDef == nil {
-		return ctrl.Result{RequeueAfter: mo.Spec.ScanInterval.Duration}, fmt.Errorf("got an empty module definition for the '%s' module pull override", mo.Name)
+		r.log.Errorf("got an empty module definition for the '%s' module pull override", mo.Name)
+		return ctrl.Result{RequeueAfter: mo.Spec.ScanInterval.Duration}, nil
 	}
 
 	var values = make(addonutils.Values)
@@ -249,12 +250,13 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 
 	moduleStorePath := path.Join(r.downloadedModulesDir, moduleDef.Name, downloader.DefaultDevVersion)
 	if err = os.RemoveAll(moduleStorePath); err != nil {
-		return ctrl.Result{}, fmt.Errorf("remove the '%s' old module dir: %w", r.downloadedModulesDir, err)
+		r.log.Errorf("failed to remove the '%s' old module dir: %v", moduleStorePath, err)
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	if err = cp.Copy(tmpDir, r.downloadedModulesDir); err != nil {
 		r.log.Errorf("failed to copy the module from the downloaded module dir: %v", err)
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	symlinkPath := filepath.Join(r.symlinksDir, fmt.Sprintf("%d-%s", moduleDef.Weight, mo.Name))
@@ -294,21 +296,7 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 		_ = r.client.Update(ctx, mo)
 	}
 
-	if err = r.ensureModuleDocumentation(ctx, mo); err != nil {
-		r.log.Errorf("failed to ensure module documentation: %v", err)
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	return ctrl.Result{RequeueAfter: mo.Spec.ScanInterval.Duration}, nil
-}
-
-// ensureModuleDocumentation creates or updates module documentation
-func (r *reconciler) ensureModuleDocumentation(ctx context.Context, mo *v1alpha1.ModulePullOverride) error {
 	modulePath := fmt.Sprintf("/%s/dev", mo.GetModuleName())
-	moduleVersion := mo.Spec.ImageTag
-	moduleChecksum := mo.Status.ImageDigest
-	moduleName := mo.Name
-	moduleSource := mo.Spec.Source
 	ownerRef := metav1.OwnerReference{
 		APIVersion: v1alpha1.ModulePullOverrideGVK.GroupVersion().String(),
 		Kind:       v1alpha1.ModulePullOverrideGVK.Kind,
@@ -317,49 +305,12 @@ func (r *reconciler) ensureModuleDocumentation(ctx context.Context, mo *v1alpha1
 		Controller: ptr.To(true),
 	}
 
-	md := new(v1alpha1.ModuleDocumentation)
-	if err := r.client.Get(ctx, client.ObjectKey{Name: moduleName}, md); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("get the '%s' module documentation: %w", moduleName, err)
-		}
-		md = &v1alpha1.ModuleDocumentation{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       v1alpha1.ModuleDocumentationGVK.Kind,
-				APIVersion: v1alpha1.ModuleDocumentationGVK.GroupVersion().String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: moduleName,
-				Labels: map[string]string{
-					v1alpha1.ModuleReleaseLabelModule: moduleName,
-					v1alpha1.ModuleReleaseLabelSource: moduleSource,
-				},
-				OwnerReferences: []metav1.OwnerReference{ownerRef},
-			},
-			Spec: v1alpha1.ModuleDocumentationSpec{
-				Version:  moduleVersion,
-				Path:     modulePath,
-				Checksum: moduleChecksum,
-			},
-		}
-
-		if err = r.client.Create(ctx, md); err != nil {
-			return fmt.Errorf("create module documentation: %w", err)
-		}
+	if err = utils.EnsureModuleDocumentation(ctx, r.client, mo.Name, mo.Spec.Source, mo.Status.ImageDigest, mo.Spec.ImageTag, modulePath, ownerRef); err != nil {
+		r.log.Errorf("failed to ensure module documentation: %v", err)
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if md.Spec.Version != moduleVersion || md.Spec.Checksum != moduleChecksum {
-		// update module documentation
-		md.Spec.Path = modulePath
-		md.Spec.Version = moduleVersion
-		md.Spec.Checksum = moduleChecksum
-		md.SetOwnerReferences([]metav1.OwnerReference{ownerRef})
-
-		if err := r.client.Update(ctx, md); err != nil {
-			return fmt.Errorf("update the '%s' module documentation: %w", md.Name, err)
-		}
-	}
-
-	return nil
+	return ctrl.Result{RequeueAfter: mo.Spec.ScanInterval.Duration}, nil
 }
 
 func (r *reconciler) enableModule(moduleName, symlinkPath string) error {

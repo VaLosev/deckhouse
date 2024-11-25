@@ -19,13 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/deckhouse/deckhouse/go_lib/reginjector"
-	"gopkg.in/yaml.v3"
-	"io"
-
 	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	addonutils "github.com/flant/addon-operator/pkg/utils"
 	openapierrors "github.com/go-openapi/errors"
 	"github.com/hashicorp/go-multierror"
+	"gopkg.in/yaml.v3"
+	"io"
 
 	"os"
 	"path/filepath"
@@ -310,18 +309,68 @@ func FindExistingModuleSymlink(rootPath, moduleName string) (string, error) {
 	var symlinkPath string
 
 	moduleRegexp := regexp.MustCompile(`^(([0-9]+)-)?(` + moduleName + `)$`)
-	walkDir := func(path string, d os.DirEntry, _ error) error {
+
+	err := filepath.WalkDir(rootPath, func(path string, d os.DirEntry, _ error) error {
 		if !moduleRegexp.MatchString(d.Name()) {
 			return nil
 		}
-
 		symlinkPath = path
 		return filepath.SkipDir
-	}
-
-	err := filepath.WalkDir(rootPath, walkDir)
+	})
 
 	return symlinkPath, err
+}
+
+// EnsureModuleDocumentation creates or updates module documentation
+func EnsureModuleDocumentation(
+	ctx context.Context,
+	cli client.Client,
+	moduleName, moduleSource, moduleChecksum, moduleVersion, modulePath string,
+	ownerRef metav1.OwnerReference,
+) error {
+	md := new(v1alpha1.ModuleDocumentation)
+	if err := cli.Get(ctx, client.ObjectKey{Name: moduleName}, md); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("get the '%s' module documentation: %w", moduleName, err)
+		}
+		md = &v1alpha1.ModuleDocumentation{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       v1alpha1.ModuleDocumentationGVK.Kind,
+				APIVersion: v1alpha1.ModuleDocumentationGVK.GroupVersion().String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: moduleName,
+				Labels: map[string]string{
+					v1alpha1.ModuleReleaseLabelModule: moduleName,
+					v1alpha1.ModuleReleaseLabelSource: moduleSource,
+				},
+				OwnerReferences: []metav1.OwnerReference{ownerRef},
+			},
+			Spec: v1alpha1.ModuleDocumentationSpec{
+				Version:  moduleVersion,
+				Path:     modulePath,
+				Checksum: moduleChecksum,
+			},
+		}
+
+		if err = cli.Create(ctx, md); err != nil {
+			return fmt.Errorf("create module documentation: %w", err)
+		}
+	}
+
+	if md.Spec.Version != moduleVersion || md.Spec.Checksum != moduleChecksum {
+		// update module documentation
+		md.Spec.Path = modulePath
+		md.Spec.Version = moduleVersion
+		md.Spec.Checksum = moduleChecksum
+		md.SetOwnerReferences([]metav1.OwnerReference{ownerRef})
+
+		if err := cli.Update(ctx, md); err != nil {
+			return fmt.Errorf("update the '%s' module documentation: %w", md.Name, err)
+		}
+	}
+
+	return nil
 }
 
 // SyncModuleRegistrySpec compares and updates current registry settings of a deployed module (in the ./openapi/values.yaml file)

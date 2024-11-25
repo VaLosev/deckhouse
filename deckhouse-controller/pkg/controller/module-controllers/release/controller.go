@@ -346,8 +346,24 @@ func (r *reconciler) handleDeployedRelease(ctx context.Context, release *v1alpha
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	modulePath := fmt.Sprintf("/%s/v%s", release.GetModuleName(), release.Spec.Version.String())
+	moduleVersion := "v" + release.Spec.Version.String()
+
+	moduleChecksum := release.Labels[v1alpha1.ModuleReleaseLabelReleaseChecksum]
+	if moduleChecksum == "" {
+		moduleChecksum = fmt.Sprintf("%x", md5.Sum([]byte(moduleVersion)))
+	}
+
+	ownerRef := metav1.OwnerReference{
+		APIVersion: v1alpha1.ModuleReleaseGVK.GroupVersion().String(),
+		Kind:       v1alpha1.ModuleReleaseGVK.Kind,
+		Name:       release.GetName(),
+		UID:        release.GetUID(),
+		Controller: ptr.To(true),
+	}
+
 	// mpo not found - update the docs from the module release version
-	if err = r.ensureModuleDocumentation(ctx, release); err != nil {
+	if err = utils.EnsureModuleDocumentation(ctx, r.client, release.GetModuleName(), release.GetModuleSource(), moduleChecksum, moduleVersion, modulePath, ownerRef); err != nil {
 		r.log.Errorf("failed to ensure module documentation: %v", err)
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -539,71 +555,6 @@ func (r *reconciler) deleteRelease(ctx context.Context, release *v1alpha1.Module
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// ensureModuleDocumentation creates or updates module documentation
-func (r *reconciler) ensureModuleDocumentation(ctx context.Context, release *v1alpha1.ModuleRelease) error {
-	modulePath := fmt.Sprintf("/%s/v%s", release.GetModuleName(), release.Spec.Version.String())
-	moduleVersion := "v" + release.Spec.Version.String()
-	moduleName := release.GetModuleName()
-	moduleSource := release.GetModuleSource()
-
-	moduleChecksum := release.Labels[v1alpha1.ModuleReleaseLabelReleaseChecksum]
-	if moduleChecksum == "" {
-		moduleChecksum = fmt.Sprintf("%x", md5.Sum([]byte(moduleVersion)))
-	}
-
-	ownerRef := metav1.OwnerReference{
-		APIVersion: v1alpha1.ModuleReleaseGVK.GroupVersion().String(),
-		Kind:       v1alpha1.ModuleReleaseGVK.Kind,
-		Name:       release.GetName(),
-		UID:        release.GetUID(),
-		Controller: ptr.To(true),
-	}
-
-	md := new(v1alpha1.ModuleDocumentation)
-	if err := r.client.Get(ctx, client.ObjectKey{Name: moduleName}, md); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("get the '%s' module documentation: %w", moduleName, err)
-		}
-		md = &v1alpha1.ModuleDocumentation{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       v1alpha1.ModuleDocumentationGVK.Kind,
-				APIVersion: v1alpha1.ModuleDocumentationGVK.GroupVersion().String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: moduleName,
-				Labels: map[string]string{
-					v1alpha1.ModuleReleaseLabelModule: moduleName,
-					v1alpha1.ModuleReleaseLabelSource: moduleSource,
-				},
-				OwnerReferences: []metav1.OwnerReference{ownerRef},
-			},
-			Spec: v1alpha1.ModuleDocumentationSpec{
-				Version:  moduleVersion,
-				Path:     modulePath,
-				Checksum: moduleChecksum,
-			},
-		}
-
-		if err = r.client.Create(ctx, md); err != nil {
-			return fmt.Errorf("create module documentation: %w", err)
-		}
-	}
-
-	if md.Spec.Version != moduleVersion || md.Spec.Checksum != moduleChecksum {
-		// update module documentation
-		md.Spec.Path = modulePath
-		md.Spec.Version = moduleVersion
-		md.Spec.Checksum = moduleChecksum
-		md.SetOwnerReferences([]metav1.OwnerReference{ownerRef})
-
-		if err := r.client.Update(ctx, md); err != nil {
-			return fmt.Errorf("update the '%s' module documentation: %w", md.Name, err)
-		}
-	}
-
-	return nil
 }
 
 // cleanUpModuleReleases finds and deletes all outdated releases of the module in Suspend, Skipped or Superseded phases, except for <outdatedReleasesKeepCount> most recent ones
