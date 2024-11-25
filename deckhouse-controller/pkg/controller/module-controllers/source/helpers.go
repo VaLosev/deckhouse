@@ -19,6 +19,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/helpers/reginjector"
 	"path/filepath"
 	"slices"
 	"time"
@@ -34,7 +35,6 @@ import (
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha1"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/module-controllers/downloader"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/module-controllers/utils"
-	"github.com/deckhouse/deckhouse/go_lib/reginjector"
 )
 
 func (r *reconciler) cleanSourceInModule(ctx context.Context, sourceName, moduleName string) error {
