@@ -17,8 +17,9 @@ limitations under the License.
 package release
 
 import (
-	"github.com/deckhouse/deckhouse/go_lib/updater"
 	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
+
+	"github.com/deckhouse/deckhouse/go_lib/updater"
 )
 
 const moduleReleaseBlockedMetricName = "d8_module_release_info"
