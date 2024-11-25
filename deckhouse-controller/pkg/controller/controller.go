@@ -235,7 +235,13 @@ func NewDeckhouseController(ctx context.Context, version string, operator *addon
 		return nil, fmt.Errorf("create module documentation controller: %w", err)
 	}
 
-	validation.RegisterAdmissionHandlers(operator.AdmissionServer, runtimeManager.GetClient(), operator.ModuleManager, configtools.NewValidator(operator.ModuleManager), loader, operator.MetricStorage)
+	validation.RegisterAdmissionHandlers(
+		operator.AdmissionServer,
+		runtimeManager.GetClient(),
+		operator.ModuleManager,
+		configtools.NewValidator(operator.ModuleManager),
+		loader,
+		operator.MetricStorage)
 
 	return &DeckhouseController{
 		runtimeManager:     runtimeManager,

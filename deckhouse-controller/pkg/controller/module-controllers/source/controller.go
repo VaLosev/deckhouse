@@ -152,6 +152,8 @@ func (r *reconciler) preflight(ctx context.Context) error {
 
 	r.clusterUUID = utils.GetClusterUUID(ctx, r.client)
 
+	r.log.Debugf("controller is ready")
+
 	return nil
 }
 

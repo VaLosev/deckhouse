@@ -176,6 +176,8 @@ func (r *reconciler) preflight(ctx context.Context) error {
 		r.metricStorage.GaugeSet("{PREFIX}module_size_bytes_total", float64(release.Status.Size), labels)
 	}
 
+	r.log.Debugf("controller is ready")
+
 	return nil
 }
 

@@ -118,10 +118,7 @@ func (r *reconciler) preflight(ctx context.Context) error {
 
 	r.clusterUUID = utils.GetClusterUUID(ctx, r.client)
 
-	//err = c.restoreAbsentModulesFromOverrides(ctx)
-	//if err != nil {
-	//	return fmt.Errorf("modules restoration from overrides failed: %w", err)
-	//}
+	r.log.Debugf("controller is ready")
 
 	return nil
 }

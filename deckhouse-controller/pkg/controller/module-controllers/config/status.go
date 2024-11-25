@@ -95,7 +95,7 @@ func (r *reconciler) refreshModuleConfig(ctx context.Context, configName string)
 func (r *reconciler) refreshModuleStatus(module *v1alpha1.Module) {
 	basicModule := r.moduleManager.GetModule(module.Name)
 	if basicModule == nil {
-		module.Status.Phase = v1alpha1.ModuleMessageNotInstalled
+		module.Status.Phase = v1alpha1.ModulePhaseAvailable
 		module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonNotInstalled, v1alpha1.ModuleMessageNotInstalled)
 		module.SetConditionFalse(v1alpha1.ModuleConditionEnabledByModuleManager, v1alpha1.ModuleReasonNotInstalled, v1alpha1.ModuleMessageNotInstalled)
 		return
@@ -142,8 +142,12 @@ func (r *reconciler) refreshModuleStatus(module *v1alpha1.Module) {
 			}
 
 		case modules.OnStartupDone:
-			module.Status.Phase = v1alpha1.ModulePhaseReconciling
-			module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonReconciling, v1alpha1.ModuleMessageOnStartupHook)
+			if module.Status.Phase != v1alpha1.ModulePhaseInstalling {
+				module.Status.Phase = v1alpha1.ModulePhaseReconciling
+				module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonReconciling, v1alpha1.ModuleMessageOnStartupHook)
+			} else {
+				module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonInstalling, v1alpha1.ModuleMessageOnStartupHook)
+			}
 
 		case modules.WaitForSynchronization:
 			module.Status.Phase = v1alpha1.ModulePhaseWaitSyncTasks

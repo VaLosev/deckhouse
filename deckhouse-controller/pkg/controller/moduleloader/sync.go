@@ -251,9 +251,9 @@ func (l *Loader) readModulesFromFS() (map[string]string, error) {
 // createModuleSymlink checks if there are any other symlinks for a module in the symlink dir and deletes them before
 // attempting to download current version of the module and creating correct symlink
 func (l *Loader) createModuleSymlink(moduleName, moduleVersion string, moduleSource *v1alpha1.ModuleSource, moduleWeight uint32) error {
-	l.log.Infof("the '%q' module is absent on file system, restore it from the '%s' source", moduleName, moduleSource.Name)
+	l.log.Infof("the '%s' module is absent on filesystem, restore it from the '%s' source", moduleName, moduleSource.Name)
 
-	// removing possible symlink doubles
+	// remove possible symlink doubles
 	if err := wipeModuleSymlinks(l.symlinksDir, moduleName); err != nil {
 		return err
 	}

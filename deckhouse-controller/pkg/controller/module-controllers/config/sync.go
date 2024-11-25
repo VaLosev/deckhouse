@@ -110,7 +110,9 @@ func (r *reconciler) syncModules(ctx context.Context) error {
 
 	r.log.Debug("module configs are inited, run event loop")
 
+	r.log.Debugf("controller is ready")
 	r.init.Done()
+
 	return r.runModuleEventLoop(ctx)
 }
 
