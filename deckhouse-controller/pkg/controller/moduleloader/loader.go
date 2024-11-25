@@ -100,14 +100,17 @@ func (l *Loader) Init(ctx context.Context) error {
 
 	l.log.Debugf("init module loader")
 
+	l.log.Debugf("restore absent modules from overrides")
 	if err := l.restoreAbsentModulesFromOverrides(ctx); err != nil {
 		return fmt.Errorf("restore absent modules from overrides: %w", err)
 	}
 
+	l.log.Debugf("restore absent modules from releases")
 	if err := l.restoreAbsentModulesFromReleases(ctx); err != nil {
 		return fmt.Errorf("restore absent modules from releases: %w", err)
 	}
 
+	l.log.Debugf("delete modules with absent release")
 	if err := l.deleteModulesWithAbsentRelease(ctx); err != nil {
 		return fmt.Errorf("delete modules with absent releases: %w", err)
 	}

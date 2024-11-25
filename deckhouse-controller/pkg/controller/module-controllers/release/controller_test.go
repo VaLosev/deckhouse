@@ -49,7 +49,7 @@ import (
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha1"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha2"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/module-controllers/utils"
-	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/moduleloader"
+	moduletypes "github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/moduleloader/types"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/helpers"
 	"github.com/deckhouse/deckhouse/go_lib/d8env"
 	"github.com/deckhouse/deckhouse/go_lib/dependency"
@@ -605,7 +605,7 @@ func TestValidateModule(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			path := filepath.Join("./testdata", name)
 			err := utils.ValidateModule(
-				modulemanager.Definition{
+				moduletypes.Definition{
 					Name:   name,
 					Weight: 900,
 					Path:   path,
