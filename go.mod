@@ -11,9 +11,9 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckhouse/deckhouse/pkg/log v0.0.0 // use non-existent version for replace
 	github.com/fatih/color v1.13.0
-	github.com/flant/addon-operator v0.0.0-20241115164403-beec2321e55e
+	github.com/flant/addon-operator v0.0.0-20241125112534-6eee0f7570ba
 	github.com/flant/kube-client v1.2.2
-	github.com/flant/shell-operator v0.0.0-20241115162933-d6d8d1a3c0c3
+	github.com/flant/shell-operator v0.0.0-20241119115955-0b4a0efc9a12
 	github.com/gammazero/deque v0.0.0-20190521012701-46e4ffb7a622
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/spec v0.19.8
@@ -65,6 +65,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/errors v0.19.7
+	github.com/go-openapi/swag v0.22.5
 	github.com/gofrs/uuid/v5 v5.3.0
 	github.com/itchyny/gojq v0.12.15
 	github.com/jonboulle/clockwork v0.4.0
@@ -79,6 +80,7 @@ require (
 	k8s.io/kubectl v0.29.0
 	sigs.k8s.io/controller-runtime v0.17.0
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
+	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3
 )
 
 require (
@@ -134,7 +136,6 @@ require (
 	github.com/go-openapi/loads v0.19.5 // indirect
 	github.com/go-openapi/runtime v0.19.16 // indirect
 	github.com/go-openapi/strfmt v0.19.5 // indirect
-	github.com/go-openapi/swag v0.22.5 // indirect
 	github.com/go-openapi/validate v0.19.12 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -247,7 +248,6 @@ require (
 	k8s.io/klog v1.0.0 // indirect
 	oras.land/oras-go v1.2.6 // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
 
