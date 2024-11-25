@@ -132,6 +132,7 @@ class DVP_GSPage < Jekyll::Page
       'platform_code' => @installName,
       'platform_type' => @installData['type'],
       'platform_name' => @installData['name'],
+      'productCode' => 'virtualization-platform',
       'url_prefix' => '/products/virtualization-platform',
       'gs_data_key' => 'dvp_data',
       'toc' => false,
