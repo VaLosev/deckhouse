@@ -75,26 +75,6 @@ def test_dispatcher_for_unit_tests(snapshots: dict | None) -> NodeGroupConversio
 
 
 class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
-    def test_not_alpha1_should_return_same_object(self):
-        obj = {
-            "apiVersion": "deckhouse.io/v1alpha2",
-            "kind": "NodeGroup",
-            "metadata": {
-                "name": "worker-static",
-            },
-            "spec": {
-                "disruptions": {
-                    "approvalMode": "Automatic"
-                },
-            }
-        }
-
-        err, res_obj = test_dispatcher_for_unit_tests(None).alpha1_to_alpha2(DotMap(obj))
-
-        self.assertIsNone(err)
-        self.assertEqual(obj, res_obj)
-
-
     def test_should_remove_static_and_spec_kubernetes_version(self):
         obj = {
             "apiVersion": "deckhouse.io/v1alpha1",
@@ -173,26 +153,6 @@ class TestUnitAlpha1ToAlpha2Method(unittest.TestCase):
 
 
 class TestUnitAlpha2ToAlpha1Method(unittest.TestCase):
-    def test_not_alpha2_should_return_same_object(self):
-        obj = {
-            "apiVersion": "deckhouse.io/v1alpha1",
-            "kind": "NodeGroup",
-            "metadata": {
-                "name": "worker-static",
-            },
-            "spec": {
-                "disruptions": {
-                    "approvalMode": "Automatic"
-                },
-            }
-        }
-
-        err, res_obj = test_dispatcher_for_unit_tests(None).alpha2_to_alpha1(obj)
-
-        self.assertIsNone(err)
-        self.assertEqual(obj, res_obj)
-
-
     def test_should_move_spec_cri_docker_to_spec_docker(self):
         obj = {
             "apiVersion": "deckhouse.io/v1alpha2",
@@ -245,29 +205,9 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
         ]
     }
 
-    def test_not_alpha2_should_return_same_object(self):
-        obj = {
-            "apiVersion": "deckhouse.io/v1alpha1",
-            "kind": "NodeGroup",
-            "metadata": {
-                "name": "worker-static",
-            },
-            "spec": {
-                "disruptions": {
-                    "approvalMode": "Automatic"
-                },
-            }
-        }
-
-        err, res_obj = test_dispatcher_for_unit_tests(TestUnitAlpha2ToV1Method.__snapshots).alpha2_to_v1(obj)
-
-        self.assertIsNone(err)
-        self.assertEqual(obj, res_obj)
-
-
     def test_change_node_type_from_cloud_to_cloud_ephemeral(self):
         obj = {
-            "apiVersion": "deckhouse.io/v1alpha2",
+            "apiVersion": "deckhouse.io/v1alpha1",
             "kind": "NodeGroup",
             "metadata": {
                 "name": "worker-static",
@@ -450,26 +390,6 @@ class TestUnitAlpha2ToV1Method(unittest.TestCase):
 
 
 class TestUnitV1ToAlpha2Method(unittest.TestCase):
-    def test_not_alpha2_should_return_same_object(self):
-        obj = {
-            "apiVersion": "deckhouse.io/v1alpha1",
-            "kind": "NodeGroup",
-            "metadata": {
-                "name": "worker-static",
-            },
-            "spec": {
-                "disruptions": {
-                    "approvalMode": "Automatic"
-                },
-            }
-        }
-
-        err, res_obj = test_dispatcher_for_unit_tests(None).v1_to_alpha2(obj)
-
-        self.assertIsNone(err)
-        self.assertEqual(obj, res_obj)
-
-
     def test_change_node_type_from_cloud_ephemeral_to_cloud(self):
         obj = {
             "apiVersion": "deckhouse.io/v1",

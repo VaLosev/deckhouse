@@ -81,11 +81,20 @@ class ConversionDispatcher:
 
         try:
             errors = []
+            from_version = self._binding_context["fromVersion"]
+            to_version = self._binding_context["toVersion"]
             for obj in self._binding_context["review"]["request"]["objects"]:
+                if from_version != obj["apiVersion"]:
+                    self.__ctx.output.conversions.collect(obj)
+                    continue
+
                 error_msg, res_obj = action(obj)
                 if error_msg is not None:
                     errors.append(error_msg)
                     continue
+
+                assert res_obj["apiVersion"] == to_version
+
                 self.__ctx.output.conversions.collect(res_obj)
             if errors:
                 err_msg = ";".join(errors)
@@ -102,9 +111,6 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
 
     def alpha1_to_alpha2(self, o: dict) -> typing.Tuple[str | None, dict]:
         obj = DotMap(o)
-
-        if obj.apiVersion != "deckhouse.io/v1alpha1":
-            return None, o
 
         obj.apiVersion = "deckhouse.io/v1alpha2"
         if "docker" in obj.spec:
@@ -125,9 +131,6 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
     def alpha2_to_alpha1(self, o: dict) -> typing.Tuple[str | None, dict]:
         obj = DotMap(o)
 
-        if obj.apiVersion != "deckhouse.io/v1alpha2":
-            return None, o
-
         obj.apiVersion = "deckhouse.io/v1alpha1"
 
         if "cri" in obj.spec:
@@ -140,9 +143,6 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
 
     def alpha2_to_v1(self, o: dict) -> typing.Tuple[str | None, dict]:
         obj = DotMap(o)
-
-        if obj.apiVersion != "deckhouse.io/v1alpha2":
-            return None, o
 
         obj.apiVersion = "deckhouse.io/v1"
 
@@ -179,9 +179,6 @@ class NodeGroupConversionDispatcher(ConversionDispatcher):
 
     def v1_to_alpha2(self, o: dict) -> typing.Tuple[str | None, dict]:
         obj = DotMap(o)
-
-        if obj.apiVersion != "deckhouse.io/v1":
-            return None, o
 
         obj.apiVersion = "deckhouse.io/v1alpha2"
 
