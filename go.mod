@@ -11,7 +11,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckhouse/deckhouse/pkg/log v0.0.0 // use non-existent version for replace
 	github.com/fatih/color v1.13.0
-	github.com/flant/addon-operator v0.0.0-20241125112534-6eee0f7570ba
+	github.com/flant/addon-operator v0.0.0-20241125120101-e503e3e71edb
 	github.com/flant/kube-client v1.2.2
 	github.com/flant/shell-operator v0.0.0-20241119115955-0b4a0efc9a12
 	github.com/gammazero/deque v0.0.0-20190521012701-46e4ffb7a622
@@ -112,6 +112,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/deckhouse/deckhouse/go_lib/registry-packages-proxy v0.0.0-20240626081445-38c0dcfd3af7 // indirect
+	github.com/deckhouse/module-sdk v0.0.0-20241125115943-6d753e4d77a5 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v27.1.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
