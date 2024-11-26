@@ -17,7 +17,6 @@ package override
 import (
 	"context"
 	"fmt"
-	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"path"
@@ -26,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	addonutils "github.com/flant/addon-operator/pkg/utils"
 	cp "github.com/otiai10/copy"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -65,7 +65,7 @@ func RegisterController(runtimeManager manager.Manager, mm moduleManager, dc dep
 
 	r.init.Add(1)
 
-	// add preflight Check
+	// add preflight
 	if err := runtimeManager.Add(manager.RunnableFunc(r.preflight)); err != nil {
 		return err
 	}
@@ -137,11 +137,16 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	if !mpo.DeletionTimestamp.IsZero() {
+		r.log.Infof("the '%s' module pull override is being deleted", req.Name)
+		return ctrl.Result{}, nil
+	}
+
 	return r.handleModuleOverride(ctx, mpo)
 }
 
 func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.ModulePullOverride) (ctrl.Result, error) {
-	var metaUpdateRequired bool
+	var needUpdate bool
 
 	// check if RegistrySpecChanged annotation is set and process it
 	if _, set := mo.GetAnnotations()[v1alpha1.ModuleReleaseAnnotationRegistrySpecChanged]; set {
@@ -150,12 +155,12 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 		modulePath := filepath.Join(r.downloadedModulesDir, mo.Name, downloader.DefaultDevVersion)
 		source := mo.ObjectMeta.Labels[v1alpha1.ModuleReleaseLabelSource]
 		if err := r.moduleManager.RunModuleWithNewOpenAPISchema(mo.Name, source, modulePath); err != nil {
-			r.log.Errorf("failed to run the '%s' module with new OpenAPI schema: %v", mo.Name, err)
+			r.log.Errorf("failed to run the '%s' module with new OpenAPI schema': %v", mo.Name, err)
 			return ctrl.Result{Requeue: true}, nil
 		}
 		// delete annotation and requeue
 		delete(mo.ObjectMeta.Annotations, v1alpha1.ModuleReleaseAnnotationRegistrySpecChanged)
-		metaUpdateRequired = true
+		needUpdate = true
 	}
 
 	// add labels if empty, source and release controllers are looking for this labels
@@ -165,37 +170,40 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 		}
 		mo.Labels[v1alpha1.ModuleReleaseLabelModule] = mo.Name
 		mo.Labels[v1alpha1.ModuleReleaseLabelSource] = mo.Spec.Source
-		metaUpdateRequired = true
+		needUpdate = true
 	}
 
-	if metaUpdateRequired {
-		return ctrl.Result{RequeueAfter: 500 * time.Millisecond}, r.client.Update(ctx, mo)
+	if needUpdate {
+		if err := r.client.Update(ctx, mo); err != nil {
+			r.log.Errorf("failed to update the '%s' module pull override: %v", mo.Name, err)
+		}
+		return ctrl.Result{RequeueAfter: 500 * time.Millisecond}, nil
 	}
 
 	source := new(v1alpha1.ModuleSource)
 	if err := r.client.Get(ctx, client.ObjectKey{Name: mo.Spec.Source}, source); err != nil {
 		if apierrors.IsNotFound(err) {
-			mo.Status.Message = fmt.Sprintf("the '%s' module source not found", mo.Spec.Source)
+			mo.Status.Message = fmt.Sprintf("the '%s' module source not found for the '%s' module pull override", mo.Spec.Source, mo.Name)
 			if uerr := r.updateModulePullOverrideStatus(ctx, mo); uerr != nil {
-				r.log.Errorf("failed to update module pull override status: %v", uerr)
+				r.log.Errorf("failed to update the '%s' module pull override status: %v", mo.Name, uerr)
 				return ctrl.Result{Requeue: true}, nil
 			}
 			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
-		r.log.Errorf("failed to get the '%s' module source: %v", mo.Spec.Source, err)
+		r.log.Errorf("failed to get the '%s' module source for the '%s' module pull override: %v", mo.Spec.Source, mo.Name, err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
 	tmpDir, err := os.MkdirTemp("", "module*")
 	if err != nil {
-		r.log.Errorf("failed to create temporary directory: %v", err)
+		r.log.Errorf("failed to create temporary directory for the '%s' module pull override: %v", mo.Name, err)
 		return ctrl.Result{}, nil
 	}
 
 	// clear temp dir
 	defer func() {
 		if err = os.RemoveAll(tmpDir); err != nil {
-			r.log.Errorf("failed to remove the '%s' old module dir: %v", tmpDir, err)
+			r.log.Errorf("failed to remove the '%s' old module dir for the '%s' module pull override: %v", tmpDir, mo.Name, err)
 		}
 	}()
 
@@ -205,10 +213,10 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 	if err != nil {
 		mo.Status.Message = err.Error()
 		if uerr := r.updateModulePullOverrideStatus(ctx, mo); uerr != nil {
-			r.log.Errorf("failed to update module pull override status: %v", uerr)
+			r.log.Errorf("failed to update the '%s' module pull override status: %v", mo.Name, uerr)
 			return ctrl.Result{Requeue: true}, nil
 		}
-		r.log.Errorf("failed to download dev image tag: %v", err)
+		r.log.Errorf("failed to download dev image tag for the '%s' module pull override: %v", mo.Name, err)
 		return ctrl.Result{RequeueAfter: mo.Spec.ScanInterval.Duration}, nil
 	}
 
@@ -218,7 +226,7 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 			// drop error message, if exists
 			mo.Status.Message = ""
 			if uerr := r.updateModulePullOverrideStatus(ctx, mo); uerr != nil {
-				r.log.Errorf("failed to update module pull override status: %v", uerr)
+				r.log.Errorf("failed to update the '%s' module pull override status: %v", mo.Name, uerr)
 				return ctrl.Result{Requeue: true}, nil
 			}
 		}
@@ -238,7 +246,7 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 	if err = utils.ValidateModule(*moduleDef, values, r.log); err != nil {
 		mo.Status.Message = fmt.Sprintf("validation failed: %v", err)
 		if uerr := r.updateModulePullOverrideStatus(ctx, mo); uerr != nil {
-			r.log.Errorf("failed to update module pull override status: %v", uerr)
+			r.log.Errorf("failed to update the '%s' module pull override status: %v", mo.Name, uerr)
 			return ctrl.Result{Requeue: true}, nil
 		}
 		r.log.Errorf("failed to validate the '%s' module pull override: %v", mo.Name, err)
@@ -247,12 +255,12 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 
 	moduleStorePath := path.Join(r.downloadedModulesDir, moduleDef.Name, downloader.DefaultDevVersion)
 	if err = os.RemoveAll(moduleStorePath); err != nil {
-		r.log.Errorf("failed to remove the '%s' old module dir: %v", moduleStorePath, err)
+		r.log.Errorf("failed to remove the '%s' old module dir for the '%s' module pull override: %v", moduleStorePath, mo.Name, err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
 	if err = cp.Copy(tmpDir, r.downloadedModulesDir); err != nil {
-		r.log.Errorf("failed to copy the module from the downloaded module dir: %v", err)
+		r.log.Errorf("failed to copy the module from the downloaded module dir for the '%s' module pull override: %v", mo.Name, err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -260,7 +268,7 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 	if err = r.enableModule(mo.Name, symlinkPath); err != nil {
 		mo.Status.Message = err.Error()
 		if uerr := r.updateModulePullOverrideStatus(ctx, mo); uerr != nil {
-			r.log.Errorf("failed to update module pull override status: %v", uerr)
+			r.log.Errorf("failed to update the '%s' module pull override status: %v", mo.Name, uerr)
 			return ctrl.Result{Requeue: true}, nil
 		}
 		r.log.Errorf("failed to enable the '%s' module: %v", mo.Name, err)
@@ -303,7 +311,7 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 	}
 
 	if err = utils.EnsureModuleDocumentation(ctx, r.client, mo.Name, mo.Spec.Source, mo.Status.ImageDigest, mo.Spec.ImageTag, modulePath, ownerRef); err != nil {
-		r.log.Errorf("failed to ensure module documentation: %v", err)
+		r.log.Errorf("failed to ensure module documentation for the '%s' module pull override: %v", mo.Name, err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 

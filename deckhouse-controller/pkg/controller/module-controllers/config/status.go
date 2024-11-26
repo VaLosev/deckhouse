@@ -95,9 +95,6 @@ func (r *reconciler) refreshModuleConfig(ctx context.Context, configName string)
 func (r *reconciler) refreshModuleStatus(module *v1alpha1.Module) {
 	basicModule := r.moduleManager.GetModule(module.Name)
 	if basicModule == nil {
-		module.Status.Phase = v1alpha1.ModulePhaseAvailable
-		module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonNotInstalled, v1alpha1.ModuleMessageNotInstalled)
-		module.SetConditionFalse(v1alpha1.ModuleConditionEnabledByModuleManager, v1alpha1.ModuleReasonNotInstalled, v1alpha1.ModuleMessageNotInstalled)
 		return
 	}
 

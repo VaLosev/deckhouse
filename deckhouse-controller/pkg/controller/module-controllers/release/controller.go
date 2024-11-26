@@ -240,7 +240,7 @@ func (r *reconciler) handleRelease(ctx context.Context, release *v1alpha1.Module
 		release.Status.TransitionTime = metav1.NewTime(r.dependencyContainer.GetClock().Now().UTC())
 		if err := r.client.Status().Update(ctx, release); err != nil {
 			r.log.Errorf("failed to update the '%s' module release status: %v", release.Name, err)
-			return ctrl.Result{}, nil
+			return ctrl.Result{Requeue: true}, nil
 		}
 
 		return ctrl.Result{Requeue: true}, nil // process to the next phase
@@ -253,7 +253,7 @@ func (r *reconciler) handleRelease(ctx context.Context, release *v1alpha1.Module
 			release.Labels[v1alpha1.ModuleReleaseLabelStatus] = strings.ToLower(release.Status.Phase)
 			if err := r.client.Update(ctx, release); err != nil {
 				r.log.Errorf("failed to update the '%s' module release status: %v", release.Name, err)
-				return ctrl.Result{}, nil
+				return ctrl.Result{Requeue: true}, nil
 			}
 		}
 
@@ -266,7 +266,7 @@ func (r *reconciler) handleRelease(ctx context.Context, release *v1alpha1.Module
 	// if ModulePullOverride exists, don't process pending release, to avoid fs override
 	exists, err := utils.ModulePullOverrideExists(ctx, r.client, release.GetModuleSource(), release.Spec.ModuleName)
 	if err != nil {
-		r.log.Errorf("failed to get module pull override: %v", err)
+		r.log.Errorf("failed to get the '%s' module pull override: %v", release.Spec.ModuleName, err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -407,7 +407,7 @@ func (r *reconciler) handlePendingRelease(ctx context.Context, release *v1alpha1
 
 				if err = r.updateReleaseStatusMessage(ctx, release, fmt.Sprintf("Update policy %s not found", policyName)); err != nil {
 					r.log.Errorf("failed to update the '%s' release status: %v", release.Name, err)
-					return ctrl.Result{}, nil
+					return ctrl.Result{Requeue: true}, nil
 				}
 				r.log.Errorf("failed to get the '%s' update policy: %v", policyName, err)
 				return ctrl.Result{RequeueAfter: defaultCheckInterval}, nil
@@ -417,7 +417,7 @@ func (r *reconciler) handlePendingRelease(ctx context.Context, release *v1alpha1
 		if policy.Spec.Update.Mode == v1alpha1.ModuleUpdatePolicyModeIgnore {
 			if err := r.updateReleaseStatusMessage(ctx, release, disabledByIgnorePolicy); err != nil {
 				r.log.Errorf("failed to update the '%s' release status: %v", release.Name, err)
-				return ctrl.Result{}, nil
+				return ctrl.Result{Requeue: true}, nil
 			}
 			return ctrl.Result{RequeueAfter: defaultCheckInterval * 4}, nil
 		}
