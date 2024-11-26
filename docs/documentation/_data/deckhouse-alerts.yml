@@ -3687,7 +3687,7 @@ alerts:
       description: |
         ModuleConfig {{ $labels.name }} has an obsolete version, update to the latest.
       summary: |
-        ModuleConfig {{ $labels.name }} has an obsolete version.
+        ModuleConfig {{ $labels.name }} is outdated.
       severity: "4"
       markupFormat: markdown
     - name: ModuleReleaseIsBlockedByRequirements
