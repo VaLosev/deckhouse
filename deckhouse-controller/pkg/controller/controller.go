@@ -54,7 +54,6 @@ import (
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/controller/moduleloader"
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/helpers"
 	"github.com/deckhouse/deckhouse/go_lib/configtools"
-	"github.com/deckhouse/deckhouse/go_lib/d8env"
 	"github.com/deckhouse/deckhouse/go_lib/dependency"
 	"github.com/deckhouse/deckhouse/go_lib/dependency/extenders"
 	"github.com/deckhouse/deckhouse/pkg/log"
@@ -258,18 +257,16 @@ func NewDeckhouseController(ctx context.Context, version string, operator *addon
 
 // Start loads and ensures modules from FS, starts controllers and runs deckhouse config event loop
 func (c *DeckhouseController) Start(ctx context.Context) error {
-	// run preflight checks
-	if d8env.GetDownloadedModulesDir() != "" {
-		c.startModulesControllers(ctx)
-	}
+	// run preflight check
+	c.startModulesControllers(ctx)
 
 	// wait for cache sync
 	if ok := c.runtimeManager.GetCache().WaitForCacheSync(ctx); !ok {
 		return fmt.Errorf("wait for cache sync")
 	}
 
-	// init loader to sync fs with cluster state
-	if err := c.moduleLoader.Init(ctx); err != nil {
+	// sync fs with cluster state, restore or delete modules
+	if err := c.moduleLoader.Sync(ctx); err != nil {
 		return fmt.Errorf("init module loader: %w", err)
 	}
 

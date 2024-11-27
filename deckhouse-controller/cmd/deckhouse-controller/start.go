@@ -160,7 +160,7 @@ func run(ctx context.Context, operator *addonoperator.AddonOperator, logger *log
 		return fmt.Errorf("create deckhouse controller: %w", err)
 	}
 
-	// load modules from FS, start pluggable controllers and run deckhouse config event loop
+	// load modules from FS, start controllers and run deckhouse config event loop
 	if err = deckhouseController.Start(ctx); err != nil {
 		return fmt.Errorf("start deckhouse controller: %w", err)
 	}

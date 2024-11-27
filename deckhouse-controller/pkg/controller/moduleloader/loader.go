@@ -95,7 +95,8 @@ func New(client client.Client, version, modulesDir string, dc dependency.Contain
 	}
 }
 
-func (l *Loader) Init(ctx context.Context) error {
+// Sync syncs fs and cluster, restores or deletes modules
+func (l *Loader) Sync(ctx context.Context) error {
 	l.clusterUUID = d8utils.GetClusterUUID(ctx, l.client)
 
 	l.log.Debugf("init module loader")
@@ -358,14 +359,14 @@ func (l *Loader) ensureModule(ctx context.Context, def *moduletypes.Definition, 
 func (l *Loader) parseModulesDir(modulesDir string) ([]*moduletypes.Definition, error) {
 	entries, err := readDir(modulesDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read dir: %w", err)
 	}
 
 	definitions := make([]*moduletypes.Definition, 0)
 	for _, entry := range entries {
 		name, absPath, err := l.resolveDirEntry(modulesDir, entry)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("resolve dir entry: %w", err)
 		}
 		// skip non-directories.
 		if name == "" {
@@ -378,7 +379,7 @@ func (l *Loader) parseModulesDir(modulesDir string) ([]*moduletypes.Definition, 
 
 		definition, err := l.moduleDefinitionByDir(name, absPath)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parse module definition by dir: %w", err)
 		}
 
 		definitions = append(definitions, definition)
