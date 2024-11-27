@@ -295,7 +295,7 @@ func restoreModuleSymlink(downloadedModulesDir, symlinkPath, moduleRelativePath 
 func wipeModuleSymlinks(symlinksDir, moduleName string) error {
 	// delete all module's symlinks in a loop
 	for {
-		anotherModuleSymlink, err := utils.FindExistingModuleSymlink(symlinksDir, moduleName)
+		anotherModuleSymlink, err := utils.GetModuleSymlink(symlinksDir, moduleName)
 		if err != nil {
 			return fmt.Errorf("check if there are any other symlinks for the '%s' module: %w", moduleName, err)
 		}
