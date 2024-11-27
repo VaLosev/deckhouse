@@ -152,7 +152,7 @@ func (l *Loader) restoreAbsentModulesFromReleases(ctx context.Context) error {
 			return fmt.Errorf("get module pull override for the '%s' module: %w", moduleName, err)
 		}
 		if exists {
-			l.log.Infof("the '%s' module is overriden, skip release restoring", moduleName)
+			l.log.Infof("the '%s' module is overridden, skip release restoring", moduleName)
 			continue
 		}
 

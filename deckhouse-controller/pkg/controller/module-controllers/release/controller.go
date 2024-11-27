@@ -29,18 +29,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	addonmodules "github.com/flant/addon-operator/pkg/module_manager/models/modules"
 	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
-
-	"github.com/Masterminds/semver/v3"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -271,7 +268,7 @@ func (r *reconciler) handleRelease(ctx context.Context, release *v1alpha1.Module
 	}
 
 	if exists {
-		r.log.Infof("the %q module is overriden, skip release processing", release.Spec.ModuleName)
+		r.log.Infof("the %q module is overridden, skip release processing", release.Spec.ModuleName)
 		return ctrl.Result{RequeueAfter: defaultCheckInterval}, nil
 	}
 
@@ -508,7 +505,7 @@ func (r *reconciler) handlePendingRelease(ctx context.Context, release *v1alpha1
 		// patch release does not respect update windows or ManualMode
 		if err = releaseUpdater.ApplyPredictedRelease(); err != nil {
 			r.log.Errorf("failed to apply predicted release: %v", err.Error())
-			return r.wrapApplyReleaseError(err)
+			return r.wrapApplyReleaseError(err), nil
 		}
 
 		modulesChangedReason = "a new module release found"
@@ -517,7 +514,7 @@ func (r *reconciler) handlePendingRelease(ctx context.Context, release *v1alpha1
 
 	if err = releaseUpdater.ApplyPredictedRelease(); err != nil {
 		r.log.Errorf("failed to apply predicted release: %v", err.Error())
-		return r.wrapApplyReleaseError(err)
+		return r.wrapApplyReleaseError(err), nil
 	}
 
 	modulesChangedReason = "a new module release found"
@@ -633,7 +630,7 @@ func (r *reconciler) parseNotificationConfig(ctx context.Context) (updater.Notif
 	return settings.NotificationConfig, nil
 }
 
-func (r *reconciler) wrapApplyReleaseError(err error) (ctrl.Result, error) {
+func (r *reconciler) wrapApplyReleaseError(err error) ctrl.Result {
 	var notReadyErr *updater.NotReadyForDeployError
 	if errors.As(err, &notReadyErr) {
 		// TODO: requeue all releases if deckhouse update settings is changed
@@ -643,10 +640,10 @@ func (r *reconciler) wrapApplyReleaseError(err error) (ctrl.Result, error) {
 		// }
 		// r.logger.Infof("%s: retry after %s", err.Error(), requeueAfter)
 		// return ctrl.Result{RequeueAfter: requeueAfter}, nil
-		return ctrl.Result{RequeueAfter: defaultCheckInterval}, nil
+		return ctrl.Result{RequeueAfter: defaultCheckInterval}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}
 }
 
 func (r *reconciler) updateReleaseStatusMessage(ctx context.Context, release *v1alpha1.ModuleRelease, message string) error {
