@@ -21,7 +21,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/deckhouse/deckhouse/deckhouse-controller/pkg/apis/deckhouse.io/v1alpha1"
@@ -102,34 +101,12 @@ func (r *reconciler) syncModules(ctx context.Context) error {
 			return fmt.Errorf("set enabled to the '%s' module: %w", moduleName, err)
 		}
 	}
-	r.log.Debug("registered modules are inited, init module configs")
-
-	if err := r.syncModuleConfigs(ctx); err != nil {
-		return fmt.Errorf("sync module configs: %w", err)
-	}
-
-	r.log.Debug("module configs are inited, run event loop")
+	r.log.Debug("registered modules are inited")
 
 	r.log.Debugf("controller is ready")
 	r.init.Done()
 
 	return r.runModuleEventLoop(ctx)
-}
-
-// syncModuleConfigs syncs module configs at start
-func (r *reconciler) syncModuleConfigs(ctx context.Context) error {
-	return retry.OnError(retry.DefaultRetry, apierrors.IsServiceUnavailable, func() error {
-		configs := new(v1alpha1.ModuleConfigList)
-		if err := r.client.List(ctx, configs); err != nil {
-			return fmt.Errorf("list module configs: %w", err)
-		}
-		for _, moduleConfig := range configs.Items {
-			if err := r.refreshModuleConfig(ctx, moduleConfig.Name); err != nil {
-				return fmt.Errorf("refresh the '%s' module config: %w", moduleConfig.Name, err)
-			}
-		}
-		return nil
-	})
 }
 
 // runModuleEventLoop triggers module refreshing at any event from addon-operator

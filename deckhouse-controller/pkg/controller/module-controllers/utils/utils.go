@@ -212,7 +212,7 @@ func UpdatePolicy(ctx context.Context, cli client.Client, embeddedPolicy *helper
 
 func ModulePullOverrideExists(ctx context.Context, cli client.Client, sourceName, moduleName string) (bool, error) {
 	mpos := new(v1alpha1.ModulePullOverrideList)
-	if err := cli.List(ctx, mpos, client.MatchingLabels{"source": sourceName, "module": moduleName}, client.Limit(1)); err != nil {
+	if err := cli.List(ctx, mpos, client.MatchingLabels{v1alpha1.ModuleReleaseLabelSource: sourceName, v1alpha1.ModuleReleaseLabelModule: moduleName}, client.Limit(1)); err != nil {
 		return false, err
 	}
 	return len(mpos.Items) > 0, nil
@@ -279,7 +279,9 @@ func ValidateModule(def moduletypes.Definition, values addonutils.Values, logger
 	return nil
 }
 
+// EnableModule deletes old symlinks and creates a new one
 func EnableModule(downloadedModulesDir, oldSymlinkPath, newSymlinkPath, modulePath string) error {
+	// delete the old module symlink with diff version if exists
 	if oldSymlinkPath != "" {
 		if _, err := os.Lstat(oldSymlinkPath); err == nil {
 			if err = os.Remove(oldSymlinkPath); err != nil {
@@ -288,6 +290,7 @@ func EnableModule(downloadedModulesDir, oldSymlinkPath, newSymlinkPath, modulePa
 		}
 	}
 
+	// delete the new module symlink
 	if _, err := os.Lstat(newSymlinkPath); err == nil {
 		if err = os.Remove(newSymlinkPath); err != nil {
 			return fmt.Errorf("delete the '%s' new symlink: %w", newSymlinkPath, err)
@@ -304,7 +307,8 @@ func EnableModule(downloadedModulesDir, oldSymlinkPath, newSymlinkPath, modulePa
 	return os.Symlink(modulePath, newSymlinkPath)
 }
 
-func FindExistingModuleSymlink(rootPath, moduleName string) (string, error) {
+// GetModuleSymlink walks over the root dir to find a module symlink by regexp
+func GetModuleSymlink(rootPath, moduleName string) (string, error) {
 	var symlinkPath string
 
 	moduleRegexp := regexp.MustCompile(`^(([0-9]+)-)?(` + moduleName + `)$`)

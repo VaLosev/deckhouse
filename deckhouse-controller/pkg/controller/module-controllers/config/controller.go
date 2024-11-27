@@ -76,7 +76,7 @@ func RegisterController(
 
 	r.init.Add(1)
 
-	// sync modules and configs
+	// sync modules
 	if err := runtimeManager.Add(manager.RunnableFunc(r.syncModules)); err != nil {
 		return err
 	}

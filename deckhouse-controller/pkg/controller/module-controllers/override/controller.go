@@ -319,8 +319,9 @@ func (r *reconciler) handleModuleOverride(ctx context.Context, mo *v1alpha1.Modu
 }
 
 func (r *reconciler) enableModule(moduleName, symlinkPath string) error {
-	currentModuleSymlink, err := utils.FindExistingModuleSymlink(r.symlinksDir, moduleName)
+	currentModuleSymlink, err := utils.GetModuleSymlink(r.symlinksDir, moduleName)
 	if err != nil {
+		r.log.Warnf("failed to find the current module symlink for the '%s' module: %v", moduleName, err)
 		currentModuleSymlink = "900-" + moduleName // fallback
 	}
 

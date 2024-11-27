@@ -202,13 +202,14 @@ func (k *kubeAPI) DeployRelease(ctx context.Context, release *v1alpha1.ModuleRel
 	// search symlink for module by regexp
 	// module weight for a new version of the module may be different from the old one,
 	// we need to find a symlink that contains the module name without looking at the weight prefix.
-	currentModuleSymlink, err := utils.FindExistingModuleSymlink(k.symlinksDir, moduleName)
-	newModuleSymlink := path.Join(k.symlinksDir, fmt.Sprintf("%d-%s", def.Weight, moduleName))
+	currentModuleSymlink, err := utils.GetModuleSymlink(k.symlinksDir, moduleName)
 	if err != nil {
+		k.log.Warnf("failed to find the current module symlink for the '%s' module: %v", moduleName, err)
 		currentModuleSymlink = "900-" + moduleName // fallback
 	}
+	newModuleSymlink := path.Join(k.symlinksDir, fmt.Sprintf("%d-%s", def.Weight, moduleName))
 	if err = utils.EnableModule(k.downloadedModulesDir, currentModuleSymlink, newModuleSymlink, relativeModulePath); err != nil {
-		return fmt.Errorf("module deploy failed: %w", err)
+		return fmt.Errorf("enable the '%s' module: %w", moduleName, err)
 	}
 
 	// disable target module hooks so as not to invoke them before restart
