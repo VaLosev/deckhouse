@@ -17,7 +17,6 @@ package override
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"path"
 	"path/filepath"
@@ -30,6 +29,7 @@ import (
 	cp "github.com/otiai10/copy"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
