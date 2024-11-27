@@ -624,9 +624,9 @@ func TestValidateModule(t *testing.T) {
 		})
 	}
 
-	check("module", false)
-	check("module-not-valid", true)
-	check("module-failed", true)
-	check("module-values-failed", true)
-	check("virtualization", false)
+	check("validation/module", false)
+	check("validation/module-not-valid", true)
+	check("validation/module-failed", true)
+	check("validation/module-values-failed", true)
+	check("validation/virtualization", false)
 }
