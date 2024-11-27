@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -28,6 +27,7 @@ import (
 )
 
 // syncModules syncs modules at start
+// TODO(ipaqsa): move it to module loader and run it in goroutine not at start
 func (r *reconciler) syncModules(ctx context.Context) error {
 	// wait until module manager init
 	r.log.Debug("wait until module manager is inited")
@@ -37,17 +37,14 @@ func (r *reconciler) syncModules(ctx context.Context) error {
 		return fmt.Errorf("init module manager: %w", err)
 	}
 
-	r.log.Debugf("init registered modules")
-	for _, moduleName := range r.moduleManager.GetModuleNames() {
-		module := new(v1alpha1.Module)
-		if err := r.client.Get(ctx, client.ObjectKey{Name: moduleName}, module); err != nil {
-			if apierrors.IsNotFound(err) {
-				r.log.Warnf("the '%s' module not found", moduleName)
-				continue
-			}
-			return fmt.Errorf("get the '%s' module: %w", moduleName, err)
-		}
+	r.log.Debugf("sync modules")
 
+	modules := new(v1alpha1.ModuleList)
+	if err := r.client.List(ctx, modules); err != nil {
+		return fmt.Errorf("list all modules: %w", err)
+	}
+
+	for _, module := range modules.Items {
 		// handle too long disabled embedded modules
 		if module.DisabledByModuleConfigMoreThan(deleteReleasesAfter) && !module.IsEmbedded() {
 			// delete module releases of a stale module
@@ -63,7 +60,7 @@ func (r *reconciler) syncModules(ctx context.Context) error {
 			}
 
 			// clear module
-			err := utils.Update[*v1alpha1.Module](ctx, r.client, module, func(module *v1alpha1.Module) bool {
+			err := utils.Update[*v1alpha1.Module](ctx, r.client, &module, func(module *v1alpha1.Module) bool {
 				availableSources := module.Properties.AvailableSources
 				module.Properties = v1alpha1.ModuleProperties{
 					AvailableSources: availableSources,
@@ -75,33 +72,16 @@ func (r *reconciler) syncModules(ctx context.Context) error {
 			}
 
 			// set available and skip
-			err = utils.UpdateStatus[*v1alpha1.Module](ctx, r.client, module, func(module *v1alpha1.Module) bool {
+			err = utils.UpdateStatus[*v1alpha1.Module](ctx, r.client, &module, func(module *v1alpha1.Module) bool {
 				module.Status.Phase = v1alpha1.ModulePhaseAvailable
-				module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonDisabled, v1alpha1.ModuleMessageDisabled)
+				module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonNotInstalled, v1alpha1.ModuleMessageNotInstalled)
 				return true
 			})
 			if err != nil {
 				return fmt.Errorf("set the Available module phase for the '%s' module: %w", module.Name, err)
 			}
-			continue
-		}
-
-		// init modules status
-		err := utils.UpdateStatus[*v1alpha1.Module](ctx, r.client, module, func(module *v1alpha1.Module) bool {
-			module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonInit, v1alpha1.ModuleMessageInit)
-			if r.moduleManager.IsModuleEnabled(module.Name) {
-				module.SetConditionTrue(v1alpha1.ModuleConditionEnabledByModuleManager)
-			} else {
-				module.SetConditionFalse(v1alpha1.ModuleConditionEnabledByModuleManager, v1alpha1.ModuleReasonInit, v1alpha1.ModuleMessageInit)
-			}
-			module.SetConditionFalse(v1alpha1.ModuleConditionEnabledByModuleConfig, v1alpha1.ModuleReasonInit, v1alpha1.ModuleMessageInit)
-			return true
-		})
-		if err != nil {
-			return fmt.Errorf("set enabled to the '%s' module: %w", moduleName, err)
 		}
 	}
-	r.log.Debug("registered modules are inited")
 
 	r.log.Debugf("controller is ready")
 	r.init.Done()
