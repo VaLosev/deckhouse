@@ -140,7 +140,6 @@ func (r *reconciler) refreshModuleStatus(module *v1alpha1.Module) {
 
 		case modules.OnStartupDone:
 			if module.Status.Phase != v1alpha1.ModulePhaseInstalling {
-				module.Status.Phase = v1alpha1.ModulePhaseReconciling
 				module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonReconciling, v1alpha1.ModuleMessageOnStartupHook)
 			} else {
 				module.SetConditionFalse(v1alpha1.ModuleConditionIsReady, v1alpha1.ModuleReasonInstalling, v1alpha1.ModuleMessageOnStartupHook)

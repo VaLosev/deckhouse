@@ -81,7 +81,7 @@ const (
 	ModuleMessageReconciling                 = "reconciling"
 	ModuleMessageInstalling                  = "installing"
 	ModuleMessageWaitSyncTasks               = "run sync tasks"
-	ModuleMessageOnStartupHook               = "completed OnStartup hooks"
+	ModuleMessageOnStartupHook               = "onStartup hooks done"
 	ModuleMessageHooksDisabled               = "hooks disabled"
 )
 
