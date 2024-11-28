@@ -172,7 +172,7 @@ func NewDeckhouseController(ctx context.Context, version string, operator *addon
 
 	// init module manager
 	if err = operator.Setup(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("setup operator: %w", err)
 	}
 
 	moduleEventCh := make(chan events.ModuleEvent, 350)

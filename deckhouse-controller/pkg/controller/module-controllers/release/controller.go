@@ -466,7 +466,7 @@ func (r *reconciler) handlePendingRelease(ctx context.Context, release *v1alpha1
 	releaseUpdater := updater.NewUpdater[*v1alpha1.ModuleRelease](
 		ctx, r.dependencyContainer, r.log, settings, updater.DeckhouseReleaseData{}, true, false,
 		newKubeAPI(r.log, r.client, r.downloadedModulesDir, r.symlinksDir, r.clusterUUID, r.moduleManager, r.dependencyContainer),
-		newMetricsUpdater(r.metricStorage), &webhookDataSource{logger: r.log}, r.moduleManager.GetEnabledModuleNames(),
+		&metricsUpdater{metricStorage: r.metricStorage}, &webhookDataSource{logger: r.log}, r.moduleManager.GetEnabledModuleNames(),
 	)
 
 	{

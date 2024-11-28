@@ -24,7 +24,7 @@ import (
 	"time"
 
 	addonutils "github.com/flant/addon-operator/pkg/utils"
-	"github.com/flant/shell-operator/pkg/metric_storage"
+	metricstorage "github.com/flant/shell-operator/pkg/metric_storage"
 	cp "github.com/otiai10/copy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,13 +44,7 @@ import (
 const moduleReleaseBlockedMetricName = "d8_module_release_info"
 
 type metricsUpdater struct {
-	metricStorage *metric_storage.MetricStorage
-}
-
-func newMetricsUpdater(metricStorage *metric_storage.MetricStorage) *metricsUpdater {
-	return &metricsUpdater{
-		metricStorage: metricStorage,
-	}
+	metricStorage *metricstorage.MetricStorage
 }
 
 func (m *metricsUpdater) UpdateReleaseMetric(name string, metricLabels updater.MetricLabels) {
