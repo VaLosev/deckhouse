@@ -45,7 +45,8 @@ const (
 	controllerName = "d8-module-config-controller"
 
 	// if a module is disabled more than three days, it will be uninstalled at next deckhouse restart
-	deleteReleasesAfter = 72 * time.Hour
+	// TODO(ipaqsa): return it after test
+	deleteReleasesAfter = 5 * time.Minute
 
 	maxConcurrentReconciles = 3
 

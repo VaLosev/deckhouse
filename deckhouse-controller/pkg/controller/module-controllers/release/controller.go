@@ -367,6 +367,7 @@ func (r *reconciler) handleDeployedRelease(ctx context.Context, release *v1alpha
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	r.log.Debugf("clean up releases for the '%s' module", release.GetModuleName())
 	return r.cleanUpModuleReleases(ctx, release)
 }
 
@@ -518,6 +519,8 @@ func (r *reconciler) handlePendingRelease(ctx context.Context, release *v1alpha1
 	}
 
 	modulesChangedReason = "a new module release found"
+
+	r.log.Debugf("clean up releases for the '%s' module", release.GetModuleName())
 	return r.cleanUpModuleReleases(ctx, release)
 }
 
