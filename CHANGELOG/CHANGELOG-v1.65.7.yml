@@ -1,0 +1,11 @@
+docs:
+  fixes:
+    - summary: Changed the description of network policies for DKP
+      pull_request: https://github.com/deckhouse/deckhouse/pull/10778
+openvpn:
+  fixes:
+    - summary: Fix .git removal in ovpn-admin image
+      pull_request: https://github.com/deckhouse/deckhouse/pull/10826
+    - summary: Fix supported ciphers list.
+      pull_request: https://github.com/deckhouse/deckhouse/pull/10739
+

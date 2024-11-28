@@ -115,6 +115,7 @@
  - **[multitenancy-manager]** Change logs format to JSON. [#9955](https://github.com/deckhouse/deckhouse/pull/9955)
  - **[node-manager]** ignore heartbeat annotation on hook [#10368](https://github.com/deckhouse/deckhouse/pull/10368)
  - **[node-manager]** Fixed several RBAC resources in the node-manager module. [#9596](https://github.com/deckhouse/deckhouse/pull/9596)
+ - **[openvpn]** Fix supported ciphers list. [#10739](https://github.com/deckhouse/deckhouse/pull/10739)
  - **[operator-trivy]** Fix policies bundle error. [#10199](https://github.com/deckhouse/deckhouse/pull/10199)
  - **[prometheus]** Fix labels for prometheus pod antiAffinity. [#10117](https://github.com/deckhouse/deckhouse/pull/10117)
  - **[prometheus]** Fix stuck GrafanaDashboardDeprecation alerts [#10024](https://github.com/deckhouse/deckhouse/pull/10024)
